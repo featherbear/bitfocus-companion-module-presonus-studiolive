@@ -1,0 +1,1 @@
+# companion-module-template-es6
