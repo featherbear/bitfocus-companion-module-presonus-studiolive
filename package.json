@@ -1,0 +1,12 @@
+{
+  "name": "companion-module-presonus-studiolive-iii",
+  "version": "1.0.0",
+  "description": "PreSonus StudioLive III integration for Bitfocus Companion",
+  "main": "index.js",
+  "repository": "git@github.com:featherbear/bitfocus-companion-module-presonus-studiolive-iii.git",
+  "author": "Andrew Wong <andrew.j.wong@outlook.com>",
+  "license": "MIT",
+  "dependencies": {
+    "presonus-studiolive-api": "featherbear/presonus-studiolive-api"
+  }
+}
