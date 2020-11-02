@@ -1,6 +1,14 @@
 {
-  "name": "companion-module-presonus-studiolive-iii",
+  "name": "presonus-studiolive-iii",
   "version": "1.0.0",
+  "api_version": "1.0.0",
+  "keywords": [
+	  "presonus",
+	  "studiolive"
+	  ],
+  "manufacturer": "PreSonus",
+  "product": "StudioLive III",
+  "shortname": "studiolive",
   "description": "PreSonus StudioLive III integration for Bitfocus Companion",
   "main": "index.js",
   "repository": "git@github.com:featherbear/bitfocus-companion-module-presonus-studiolive-iii.git",
