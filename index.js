@@ -80,12 +80,14 @@ class instance extends instance_skel {
 
   action (action) {
     const id = action.action
-    let cmd
     const opt = action.options
 
     switch (id) {
-      case 'info':
-        cmd = opt.url
+      case 'mute':
+        this.client.mute(opt.channel)
+        break
+      case 'unmute':
+        this.client.unmute(opt.channel)
         break
     }
   }

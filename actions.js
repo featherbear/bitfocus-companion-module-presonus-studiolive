@@ -2,13 +2,21 @@ module.exports = {
 
   getActions () {
     const actions = {}
-    actions.info = {
-      label: 'module info',
+    actions.mute = {
+      label: 'Mute Channel',
       options: [{
-        label: 'info to get',
+        label: 'Channel to mute',
         type: 'textinput',
-        id: 'url',
-        default: 'hello'
+        id: 'channel'
+      }]
+    }
+
+    actions.unmute = {
+      label: 'Unmute Channel',
+      options: [{
+        label: 'Channel to unmute',
+        type: 'textinput',
+        id: 'channel'
       }]
     }
 
