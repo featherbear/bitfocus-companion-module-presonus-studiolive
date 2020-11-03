@@ -1,6 +1,7 @@
 const instance_skel = require('../../instance_skel')
-const api = require('presonus-studiolive-api')
+const { Client: StudioLiveAPI } = require('presonus-studiolive-api')
 const actions = require('./actions')
+const mid = require('node-machine-id').machineIdSync({ original: true }).replace(/-/g, '')
 
 class instance extends instance_skel {
   constructor (system, id, config) {
@@ -11,8 +12,25 @@ class instance extends instance_skel {
     this.actions()
   }
 
-  actions (system) {
-    this.setActions(this.getActions())
+  init () {
+    // const variables = [
+    //   { name: 'dynamic1', label: 'dynamic variable' }
+    //   // { name: 'dynamic2', label: 'dynamic var2' },
+    // ]
+    // this.setVariableDefinitions(variables)
+
+    this.client = new StudioLiveAPI(this.config.host, this.config.port)
+    this.status(this.STATUS_UNKNOWN, 'Connecting')
+
+    this.client.connect({
+      clientDescription: this.config.name, // Name of the client
+      clientIdentifier: `bitfocus:${mid}` // ID of the client
+    })
+      .then(() => {
+        this.status(this.STATE_OK)
+      }).catch(e => {
+        this.status(this.STATUS_ERROR, e.message)
+      })
   }
 
   config_fields () {
@@ -22,7 +40,7 @@ class instance extends instance_skel {
         id: 'info',
         width: 12,
         label: 'Information',
-        value: 'This module communicates to a PreSonus StudioLive III console'
+        value: 'This module communicates to a PreSonus StudioLive III console. Commands will not work until the module is authorised.'
       },
       {
         type: 'textinput',
@@ -34,17 +52,18 @@ class instance extends instance_skel {
       },
       {
         type: 'textinput',
+        id: 'port',
+        label: 'StudioLive Console Port',
+        width: 6,
+        default: 53000,
+        regex: this.REGEX_PORT
+      },
+      {
+        type: 'textinput',
         id: 'name',
         label: 'Client name',
         width: 6,
         default: 'Companion'
-      },
-      {
-        type: 'text',
-        id: 'passcode-note',
-        width: 12,
-        label: 'Note',
-        value: 'Currently, permission must be granted from an already authorised device'
       }
       // ,{
       //    type: 'textinput',
@@ -53,6 +72,10 @@ class instance extends instance_skel {
       //    width: 6,
       // }
     ]
+  }
+
+  actions (system) {
+    this.setActions(this.getActions())
   }
 
   action (action) {
@@ -71,25 +94,13 @@ class instance extends instance_skel {
     this.debug('destroy', this.id)
   }
 
-  init () {
-    this.init_variables()
-
-    this.status(this.STATE_OK)
-  }
-
   updateConfig (config) {
     this.config = config
 
+    this.client && this.client.close()
+    this.init()
+
     this.actions()
-  }
-
-  init_variables () {
-    const variables = [
-      { name: 'dynamic1', label: 'dynamic variable' }
-      // { name: 'dynamic2', label: 'dynamic var2' },
-    ]
-
-    this.setVariableDefinitions(variables)
   }
 }
 

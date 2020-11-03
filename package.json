@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "api_version": "1.0.0",
   "keywords": [
-	  "presonus",
-	  "studiolive"
-	  ],
+    "presonus",
+    "studiolive"
+  ],
   "manufacturer": "PreSonus",
   "product": "StudioLive III",
   "shortname": "studiolive",
@@ -15,6 +15,7 @@
   "author": "Andrew Wong <andrew.j.wong@outlook.com>",
   "license": "MIT",
   "dependencies": {
-    "presonus-studiolive-api": "featherbear/presonus-studiolive-api"
+    "node-machine-id": "^1.1.12",
+    "presonus-studiolive-api": "github:featherbear/presonus-studiolive-api"
   }
 }
