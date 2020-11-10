@@ -1,15 +1,13 @@
 const instance_skel = require('../../instance_skel')
 const { Client: StudioLiveAPI } = require('presonus-studiolive-api')
-const actions = require('./actions')
+const actions = require('./companionActions')
 const mid = require('node-machine-id').machineIdSync({ original: true }).replace(/-/g, '')
 
 class instance extends instance_skel {
   constructor (system, id, config) {
     super(system, id, config)
 
-    Object.assign(this, { ...actions })
-
-    this.actions()
+    this.setActions(actions)
   }
 
   init () {
@@ -74,10 +72,6 @@ class instance extends instance_skel {
     ]
   }
 
-  actions (system) {
-    this.setActions(this.getActions())
-  }
-
   action (action) {
     const id = action.action
     const opt = action.options
@@ -101,8 +95,6 @@ class instance extends instance_skel {
 
     this.client && this.client.close()
     this.init()
-
-    this.actions()
   }
 }
 
