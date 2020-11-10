@@ -1,3 +1,7 @@
+const { CHANNELS } = require('presonus-studiolive-api')
+
+const choiceMapChannels = Object.entries(CHANNELS).map(([k, v]) => ({id: v, label: k.replace(/_/g, ' ')}))
+
 module.exports = {
 
   getActions () {
@@ -6,8 +10,9 @@ module.exports = {
       label: 'Mute Channel',
       options: [{
         label: 'Channel to mute',
-        type: 'textinput',
-        id: 'channel'
+        type: 'dropdown',
+        id: 'channel',
+        choices: choiceMapChannels
       }]
     }
 
@@ -15,8 +20,9 @@ module.exports = {
       label: 'Unmute Channel',
       options: [{
         label: 'Channel to unmute',
-        type: 'textinput',
-        id: 'channel'
+        type: 'dropdown',
+        id: 'channel',
+        choices: choiceMapChannels
       }]
     }
 
