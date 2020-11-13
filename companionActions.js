@@ -1,9 +1,9 @@
 const { CHANNELS } = require('presonus-studiolive-api')
 
-const choiceMapChannels = Object.entries(CHANNELS).map(([k, v]) => ({
+const choiceMapChannels = [{id: "", label: ""}].concat(Object.entries(CHANNELS).map(([k, v]) => ({
   id: v,
   label: k.replace(/_/g, ' ')
-}))
+})))
 
 module.exports = {
   mute: {
