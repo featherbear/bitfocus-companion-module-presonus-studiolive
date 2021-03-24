@@ -115,7 +115,7 @@ pirates@^4.0.1:
   dependencies:
     node-modules-regexp "^1.0.0"
 
-presonus-studiolive-api@featherbear/presonus-studiolive-api#typescript:
+presonus-studiolive-api@featherbear/presonus-studiolive-api#194cee8f414904351fb692f922514196e676f95e:
   version "1.0.0"
   resolved "https://codeload.github.com/featherbear/presonus-studiolive-api/tar.gz/194cee8f414904351fb692f922514196e676f95e"
   dependencies:
