@@ -16,6 +16,6 @@
   "license": "MIT",
   "dependencies": {
     "node-machine-id": "^1.1.12",
-    "presonus-studiolive-api": "featherbear/presonus-studiolive-api#194cee8f414904351fb692f922514196e676f95e"
+    "presonus-studiolive-api": "featherbear/presonus-studiolive-api#db4183a6c3afec3bd1d035875785baedeb993095"
   }
 }
