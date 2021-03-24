@@ -78,10 +78,10 @@ class instance extends instance_skel {
 
     switch (id) {
       case 'mute':
-        this.client.mute(opt.channel)
+        this.client.mute(...opt.channel.split(','))
         break
       case 'unmute':
-        this.client.unmute(opt.channel)
+        this.client.unmute(...opt.channel.split(','))
         break
     }
   }

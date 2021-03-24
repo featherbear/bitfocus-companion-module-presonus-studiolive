@@ -1,31 +1,40 @@
-const { CHANNELS } = require('presonus-studiolive-api')
+const { CHANNELS, CHANNELTYPES } = require('presonus-studiolive-api')
 
-const choiceMapChannels = [{id: "", label: ""}].concat(Object.entries(CHANNELS).map(([k, v]) => ({
-  id: v,
-  label: k.replace(/_/g, ' ')
-})))
+let entries = [
+	{ id: '', label: '' },
+	...Object.entries(CHANNELTYPES)
+		.map(([tk, tv]) =>
+			Object.entries(CHANNELS[tk])
+				.filter(([_, v]) => Number.isInteger(v)) // Sucrase patch
+				.map(([k, v]) => ({
+					id: `${v},${tv}`,
+					label: k.replace(/_/g, ' ')
+				}))
+		)
+		.flat()
+]
 
 module.exports = {
-  mute: {
-    label: 'Mute Channel',
-    options: [
-      {
-        label: 'Channel to mute',
-        type: 'dropdown',
-        id: 'channel',
-        choices: choiceMapChannels
-      }
-    ]
-  },
-  unmute: {
-    label: 'Unmute Channel',
-    options: [
-      {
-        label: 'Channel to unmute',
-        type: 'dropdown',
-        id: 'channel',
-        choices: choiceMapChannels
-      }
-    ]
-  }
+	mute: {
+		label: 'Mute Channel',
+		options: [
+			{
+				label: 'Channel to mute',
+				type: 'dropdown',
+				id: 'channel',
+				choices: entries
+			}
+		]
+	},
+	unmute: {
+		label: 'Unmute Channel',
+		options: [
+			{
+				label: 'Channel to unmute',
+				type: 'dropdown',
+				id: 'channel',
+				choices: entries
+			}
+		]
+	}
 }
