@@ -3,11 +3,11 @@ const mid = require('node-machine-id').machineIdSync({ original: true }).replace
 
 import { Client as StudioLiveAPI } from 'presonus-studiolive-api'
 import companionActions, { ActionKeys } from './companionActions'
+import generateFeedback from './companionFeedbacks'
 
 type ConfigFields = 'host' | 'port' | 'name'
 
-
-module.exports = class extends instance_skel {
+class Instance extends instance_skel {
   client: StudioLiveAPI
   config: { [k in ConfigFields]: any }
 
@@ -15,6 +15,7 @@ module.exports = class extends instance_skel {
     super(system, id, config)
 
     this.setActions(companionActions)
+    this.setFeedbackDefinitions(generateFeedback.call(this));
   }
 
   init() {
@@ -113,3 +114,5 @@ module.exports = class extends instance_skel {
   }
 }
 
+module.exports = Instance
+export default Instance
