@@ -1,7 +1,13 @@
 {
-  "name": "presonus-studiolive-iii",
+  "name": "companion-module-presonus-studiolive",
   "version": "1.0.0",
   "api_version": "1.0.0",
+  "scripts": {
+    "build": "npm-run-all clean transpile",
+    "clean": "rimraf dist",
+    "transpile": "tsc",
+    "install": "npm run --silent transpile"
+  },
   "keywords": [
     "presonus",
     "studiolive"
@@ -10,12 +16,17 @@
   "product": "StudioLive III",
   "shortname": "studiolive",
   "description": "PreSonus StudioLive III integration for Bitfocus Companion",
-  "main": "index.js",
+  "main": "dist/index.js",
   "repository": "git@github.com:featherbear/bitfocus-companion-module-presonus-studiolive-iii.git",
   "author": "Andrew Wong <andrew.j.wong@outlook.com>",
   "license": "MIT",
   "dependencies": {
     "node-machine-id": "^1.1.12",
-    "presonus-studiolive-api": "featherbear/presonus-studiolive-api#db4183a6c3afec3bd1d035875785baedeb993095"
+    "presonus-studiolive-api": "featherbear/presonus-studiolive-api#db4183a6c3afec3bd1d035875785baedeb993095",
+    "typescript": "^4.5.4"
+  },
+  "devDependencies": {
+    "npm-run-all": "^4.1.5",
+    "rimraf": "^3.0.2"
   }
 }
