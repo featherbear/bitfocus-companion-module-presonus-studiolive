@@ -1,7 +1,7 @@
 const instance_skel = require('../../../instance_skel')
 const mid = require('node-machine-id').machineIdSync({ original: true }).replace(/-/g, '')
 
-import { Client as StudioLiveAPI } from 'presonus-studiolive-api'
+import { Client as StudioLiveAPI, MESSAGETYPES } from 'presonus-studiolive-api'
 import companionActions, { ActionKeys } from './companionActions'
 import generateFeedback from './companionFeedbacks'
 
@@ -30,6 +30,9 @@ class Instance extends instance_skel {
       this.status(this.STATUS_ERROR, 'Setup')
     } else {
       this.client = new StudioLiveAPI(this.config.host, this.config.port)
+      this.client.on(MESSAGETYPES.Setting, () => {
+        this.checkFeedbacks('channel_mute')
+      })
 
       this.status(this.STATUS_UNKNOWN, 'Connecting')
       this.client.connect({

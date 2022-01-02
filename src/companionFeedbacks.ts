@@ -8,7 +8,7 @@ import { ACTIONS } from "presonus-studiolive-api/dist/lib/constants";
 
 export default function generateFeedback(this: Instance) {
     return {
-        'set_source': {
+        'channel_mute': {
             type: 'boolean',
             label: 'Mute status',
             description: 'Mute status of a channel',
