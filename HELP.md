@@ -1,13 +1,17 @@
-## companion-module-template-es6
+## companion-module-presonus-studiolive
 
 ### Configuration
-* Instructions here about information needed to connect to the device/software.
+
+- **StudioLive Console IP** - The IP address or hostname of the console
+- **StudioLive Console Port** - Port number (default: `53000`)
+- **Client name** - Client identifier
 
 ### Available Actions
-* List
+
+- Mute
+- Unmute
+- Toggle Mute
 
 ### Available Feedbacks
-* List
 
-### Available Variables
-* List
+- Mute Status
