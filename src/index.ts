@@ -1,101 +1,115 @@
-const instance_skel = require('../../instance_skel')
-const { Client: StudioLiveAPI } = require('presonus-studiolive-api')
-const actions = require('./companionActions')
+const instance_skel = require('../../../instance_skel')
 const mid = require('node-machine-id').machineIdSync({ original: true }).replace(/-/g, '')
 
-class instance extends instance_skel {
-  constructor (system, id, config) {
+import { Client as StudioLiveAPI } from 'presonus-studiolive-api'
+import companionActions, { ActionKeys } from './companionActions'
+
+type ConfigFields = 'host' | 'port' | 'name'
+
+
+module.exports = class extends instance_skel {
+  client: StudioLiveAPI
+  config: { [k in ConfigFields]: any }
+
+  constructor(system, id, config) {
     super(system, id, config)
 
-    this.setActions(actions)
+    this.setActions(companionActions)
   }
 
-  init () {
+  init() {
     // const variables = [
     //   { name: 'dynamic1', label: 'dynamic variable' }
     //   // { name: 'dynamic2', label: 'dynamic var2' },
     // ]
     // this.setVariableDefinitions(variables)
 
-    this.client = new StudioLiveAPI(this.config.host, this.config.port)
-    this.status(this.STATUS_UNKNOWN, 'Connecting')
+    this.client?.close?.()
+    if (!this.config.host || !this.config.port) {
+      this.status(this.STATUS_ERROR, 'Setup')
+    } else {
+      this.client = new StudioLiveAPI(this.config.host, this.config.port)
 
-    this.client.connect({
-      clientDescription: this.config.name, // Name of the client
-      clientIdentifier: `bitfocus:${mid}` // ID of the client
-    })
-      .then(() => {
-        this.status(this.STATE_OK)
-      }).catch(e => {
-        this.status(this.STATUS_ERROR, e.message)
+      this.status(this.STATUS_UNKNOWN, 'Connecting')
+      this.client.connect({
+        clientDescription: this.config.name, // Name of the client
+        clientIdentifier: `bitfocus:${mid}` // ID of the client
       })
+        .then(() => {
+          this.status(this.STATE_OK)
+        }).catch(e => {
+          this.status(this.STATUS_ERROR, e.message)
+        })
+    }
   }
 
-  config_fields () {
-    return [
-      {
+  config_fields() {
+    const fields: { [k in ConfigFields]: { [s: string]: any } } & { [s: string]: any } = {
+      info: {
         type: 'text',
-        id: 'info',
         width: 12,
         label: 'Information',
-        value: 'This module communicates to a PreSonus StudioLive III console. Commands will not work until the module is authorised.'
+        value: 'This module communicates to a PreSonus StudioLive III console'
       },
-      {
+      host: {
         type: 'textinput',
-        id: 'host',
         label: 'StudioLive Console IP',
         width: 6,
         default: '',
         regex: this.REGEX_IP
       },
-      {
+      port: {
         type: 'textinput',
-        id: 'port',
         label: 'StudioLive Console Port',
         width: 6,
         default: 53000,
         regex: this.REGEX_PORT
       },
-      {
+      name: {
         type: 'textinput',
-        id: 'name',
         label: 'Client name',
         width: 6,
         default: 'Companion'
       }
-      // ,{
-      //    type: 'textinput',
-      //    id: 'pass',
-      //    label: 'Access Code',
-      //    width: 6,
-      // }
-    ]
+    }
+
+    return Object.entries(fields).map(
+      ([id, obj]) => ({ ...obj, id })
+    )
   }
 
-  action (action) {
-    const id = action.action
-    const opt = action.options
+  action(data: { action: string, options }) {
+    const id = data.action as ActionKeys
+    const opt = data.options
 
     switch (id) {
-      case 'mute':
-        this.client.mute(...opt.channel.split(','))
+      case 'mute': {
+        const [type, channel] = opt.channel.split(',')
+        this.client.mute({ type, channel: Math.trunc(channel) })
         break
-      case 'unmute':
-        this.client.unmute(...opt.channel.split(','))
+      }
+      case 'unmute': {
+        const [type, channel] = opt.channel.split(',')
+        this.client.unmute({ type, channel: Math.trunc(channel) })
         break
+      }
+      case 'toggleMute': {
+        const [type, channel] = opt.channel.split(',')
+        this.client.toggleMute({ type, channel: Math.trunc(channel) })
+        break
+      }
     }
   }
 
-  destroy () {
+  destroy() {
     this.debug('destroy', this.id)
   }
 
-  updateConfig (config) {
+  updateConfig(config) {
     this.config = config
 
-    this.client && this.client.close()
+
     this.init()
   }
 }
 
-exports = module.exports = instance
