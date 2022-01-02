@@ -22,7 +22,7 @@
   "license": "MIT",
   "dependencies": {
     "node-machine-id": "^1.1.12",
-    "presonus-studiolive-api": "featherbear/presonus-studiolive-api#v1.0.3",
+    "presonus-studiolive-api": "featherbear/presonus-studiolive-api#v1.0.4",
     "typescript": "^4.5.4"
   },
   "devDependencies": {

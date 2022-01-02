@@ -85,17 +85,17 @@ module.exports = class extends instance_skel {
     switch (id) {
       case 'mute': {
         const [type, channel] = opt.channel.split(',')
-        this.client.mute({ type, channel: Math.trunc(channel) })
+        this.client.mute({ type, channel })
         break
       }
       case 'unmute': {
         const [type, channel] = opt.channel.split(',')
-        this.client.unmute({ type, channel: Math.trunc(channel) })
+        this.client.unmute({ type, channel })
         break
       }
       case 'toggleMute': {
         const [type, channel] = opt.channel.split(',')
-        this.client.toggleMute({ type, channel: Math.trunc(channel) })
+        this.client.toggleMute({ type, channel })
         break
       }
     }
