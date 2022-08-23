@@ -42,6 +42,10 @@ class Instance extends instance_skel {
       this.client.on(MessageCode.ParamValue, () => {
         this.checkFeedbacks('channel_mute')
       })
+      this.client.on(MessageCode.ParamChars, () => {
+        this.checkFeedbacks('channel_colour')
+      })
+
 
       this.status(this.STATUS_UNKNOWN, 'Connecting')
       this.client.connect({
@@ -53,10 +57,12 @@ class Instance extends instance_skel {
           this.setActions(generateActions(channels))
           this.setFeedbackDefinitions(generateFeedback.call(this, channels));
 
+          this.checkFeedbacks('channel_mute')
+          this.checkFeedbacks('channel_colour')
+
           this.setVariable('console_model', this.client.state.get('global.mixer_name'))
           this.setVariable('console_version', this.client.state.get('global.mixer_version'))
           this.setVariable('console_serial', this.client.state.get('global.mixer_serial'))
-
 
           this.status(this.STATE_OK)
         }).catch(e => {

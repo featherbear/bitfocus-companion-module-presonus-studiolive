@@ -31,6 +31,32 @@ export default function generateFeedback(this: Instance, channels: DropdownActio
                     channel
                 })
             }
+        },
+        'channel_colour': {
+            type: 'advanced',
+            label: 'Channel colour',
+            description: 'Assigned channel colour',
+            options: [
+                {
+                    type: 'dropdown',
+                    label: 'Source',
+                    id: 'source',
+                    choices: channels,
+                    default: ''
+                } as DropdownActionOption
+            ],
+
+            callback: (feedback) => {
+                const [type, channel] = feedback.options.source.split(',')
+                let colour: string = this.client.getColour({ type, channel })
+                if (!colour) return {};
+
+                const [R, G, B, A] = Buffer.from(colour, 'hex')
+                if (R + G + B == 0) return {};
+
+                return { bgcolor: this.rgb(R, G, B) }
+            }
+
         }
     }
 }
