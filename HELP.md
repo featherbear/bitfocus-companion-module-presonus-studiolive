@@ -1,5 +1,3 @@
-## companion-module-presonus-studiolive
-
 ### Configuration
 
 - **StudioLive Console IP** - The IP address or hostname of the console
@@ -15,3 +13,12 @@
 ### Available Feedbacks
 
 - Mute Status
+- Channel Colour
+
+### Available Variables
+
+|Variable|Description|Example|
+|:---:|:---|:---|
+|`console_model`|Console Model|StudioLive 16R|
+|`console_version`|Console Version|2.5.17953|
+|`console_serial`|Console Serial|RA1E11030210|
