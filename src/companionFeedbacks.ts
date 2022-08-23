@@ -1,12 +1,10 @@
-import channels from "./channels";
-import { DropdownActionOption } from "./types/Action";
 import type Instance from './index'
+import type { DropdownActionOption, DropdownActionOptionChoice } from "./types/Action";
+import { parseChannelString } from 'presonus-studiolive-api/dist/lib/util/channelUtil'
 
 // TODO: Put these in the main export
-import { parseChannelString } from 'presonus-studiolive-api/dist/lib/util/channelUtil'
-import { ACTIONS } from "presonus-studiolive-api/dist/lib/constants";
 
-export default function generateFeedback(this: Instance) {
+export default function generateFeedback(this: Instance, channels: DropdownActionOptionChoice[]) {
     return {
         'channel_mute': {
             type: 'boolean',
@@ -26,9 +24,12 @@ export default function generateFeedback(this: Instance) {
                 } as DropdownActionOption
             ],
             callback: (feedback) => {
+                console.log(feedback);
                 const [type, channel] = feedback.options.source.split(',')
-                const target = parseChannelString({ type, channel })
-                return !!this.client.state.get(`${target}/${ACTIONS.MUTE}`)
+                return !!this.client.getMute({
+                    type,
+                    channel
+                })
             }
         }
     }

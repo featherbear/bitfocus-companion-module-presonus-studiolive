@@ -1,5 +1,6 @@
-import { CHANNELS, CHANNELTYPES } from 'presonus-studiolive-api'
-import { DropdownActionOptionChoice } from './types/Action'
+
+import type { ChannelTypes, ChannelCount } from 'presonus-studiolive-api';
+import type { DropdownActionOptionChoice } from './types/Action'
 
 /**
  * Prettify the channel type labels  
@@ -7,16 +8,16 @@ import { DropdownActionOptionChoice } from './types/Action'
  * - 'Title Case' the names
  * - Stylise "FX Return", and "FX"
  */
-function formatLabel(s: string) {
-    const tokens = s.split('_')
+function formatLabel(tokens: string[]) {
     let builder = []
 
-    for (let tok of (tokens as (keyof typeof CHANNELTYPES)[])) {
+    for (let tok of (tokens as ChannelTypes[])) {
         let res: string = tok
 
-        if (res == 'CH') continue
-
         switch (tok) {
+            case 'LINE':
+                res = "Channel"
+                break;
             case 'FXRETURN':
                 res = "FX Return"
                 break;
@@ -34,17 +35,29 @@ function formatLabel(s: string) {
     return builder.join(" ")
 }
 
-const channels: DropdownActionOptionChoice[] = [
-    { id: '', label: '' },
-    ...Object.entries(CHANNELTYPES)
-        .map(([channelType]) =>
-            Object.entries(CHANNELS[channelType])
-                .filter(([_, v]) => Number.isInteger(v)) // Extract only string -> number values from the enum
-                .map(([channelName, channelValue]) => ({
-                    id: `${channelType},${channelValue}`,
-                    label: formatLabel(channelName)
-                }))
-        )
-        .flat()
-]
-export default channels
+export function generateChannels(channels: ChannelCount): DropdownActionOptionChoice[] {
+    let entries = Object.entries(channels).map(([name, count]) => {
+        let channels = []
+
+        if (count == 1) {
+            channels.push({
+                id: `${name},${1}`,
+                label: formatLabel([name])
+            })
+            return channels
+        }
+
+        for (let i = 0; i < count; i++) {
+            channels.push({
+                id: `${name},${i + 1}`,
+                label: formatLabel([name, (i + 1).toString()])
+            })
+        }
+        return channels
+    }).flat()
+
+    return [
+        { id: '', label: '' },
+        ...entries
+    ]
+}

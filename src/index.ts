@@ -1,9 +1,11 @@
 const instance_skel = require('../../../instance_skel')
 const mid = require('node-machine-id').machineIdSync({ original: true }).replace(/-/g, '')
 
-import { Client as StudioLiveAPI, MESSAGETYPES } from 'presonus-studiolive-api'
-import companionActions, { ActionKeys } from './companionActions'
+import { Client as StudioLiveAPI, MessageCode } from 'presonus-studiolive-api'
+import { generateChannels } from './channels'
+import { generateActions } from './companionActions'
 import generateFeedback from './companionFeedbacks'
+import { Action } from './types/Action'
 
 type ConfigFields = 'host' | 'port' | 'name'
 
@@ -11,26 +13,33 @@ class Instance extends instance_skel {
   client: StudioLiveAPI
   config: { [k in ConfigFields]: any }
 
-  constructor(system, id, config) {
-    super(system, id, config)
-
-    this.setActions(companionActions)
-    this.setFeedbackDefinitions(generateFeedback.call(this));
-  }
-
   init() {
-    // const variables = [
-    //   { name: 'dynamic1', label: 'dynamic variable' }
-    //   // { name: 'dynamic2', label: 'dynamic var2' },
-    // ]
-    // this.setVariableDefinitions(variables)
+    let channels = generateChannels(<any>{})
+    this.setActions(generateActions(channels))
+    this.setFeedbackDefinitions(generateFeedback.call(this, channels));
+
+    this.setVariableDefinitions([
+      {
+        label: "Console Model",
+        name: 'console_model',
+      },
+      {
+        label: "Console Version",
+        name: 'console_version',
+      },
+      {
+        label: "Console Serial",
+        name: 'console_serial',
+      }
+    ]);
 
     this.client?.close?.()
+
     if (!this.config.host || !this.config.port) {
       this.status(this.STATUS_ERROR, 'Setup')
     } else {
       this.client = new StudioLiveAPI(this.config.host, this.config.port)
-      this.client.on(MESSAGETYPES.Setting, () => {
+      this.client.on(MessageCode.ParamValue, () => {
         this.checkFeedbacks('channel_mute')
       })
 
@@ -40,6 +49,15 @@ class Instance extends instance_skel {
         clientIdentifier: `bitfocus:${mid}` // ID of the client
       })
         .then(() => {
+          let channels = generateChannels(this.client.channelCounts)
+          this.setActions(generateActions(channels))
+          this.setFeedbackDefinitions(generateFeedback.call(this, channels));
+
+          this.setVariable('console_model', this.client.state.get('global.mixer_name'))
+          this.setVariable('console_version', this.client.state.get('global.mixer_version'))
+          this.setVariable('console_serial', this.client.state.get('global.mixer_serial'))
+
+
           this.status(this.STATE_OK)
         }).catch(e => {
           this.status(this.STATUS_ERROR, e.message)
@@ -83,7 +101,7 @@ class Instance extends instance_skel {
   }
 
   action(data: { action: string, options }) {
-    const id = data.action as ActionKeys
+    const id = data.action
     const opt = data.options
 
     switch (id) {
