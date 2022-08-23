@@ -1,10 +1,27 @@
 import type Instance from './index'
 import type { DropdownActionOption, DropdownActionOptionChoice } from "./types/Action";
-import { parseChannelString } from 'presonus-studiolive-api/dist/lib/util/channelUtil'
+import type { ChannelSelector } from 'presonus-studiolive-api';
 
-// TODO: Put these in the main export
+export default function generateFeedback(this: Instance, channels: DropdownActionOptionChoice[], mixes: DropdownActionOptionChoice[]) {
+    function generateChannelSourceOption(): DropdownActionOption {
+        return {
+            label: "Source",
+            type: 'dropdown',
+            id: 'channel',
+            choices: channels,
+            default: ''
+        }
+    }
+    function generateMixSourceOption(): DropdownActionOption {
+        return {
+            label: "Mix source",
+            type: 'dropdown',
+            id: 'mix',
+            choices: mixes,
+            default: ''
+        }
+    }
 
-export default function generateFeedback(this: Instance, channels: DropdownActionOptionChoice[]) {
     return {
         'channel_mute': {
             type: 'boolean',
@@ -15,21 +32,22 @@ export default function generateFeedback(this: Instance, channels: DropdownActio
                 bgcolor: this.rgb(255, 0, 0)
             },
             options: [
-                {
-                    type: 'dropdown',
-                    label: 'Source',
-                    id: 'source',
-                    choices: channels,
-                    default: ''
-                } as DropdownActionOption
+                generateChannelSourceOption(),
+                generateMixSourceOption()
             ],
             callback: (feedback) => {
-                console.log(feedback);
-                const [type, channel] = feedback.options.source.split(',')
-                return !!this.client.getMute({
+                const [type, channel] = feedback.options.channel.split(',')
+                let selector: ChannelSelector = {
                     type,
                     channel
-                })
+                }
+                if (feedback.options.mix) {
+                    const [type, channel] = feedback.options.mix.split(',');
+                    (<ChannelSelector>selector).mixType = type;
+                    (<ChannelSelector>selector).mixNumber = channel;
+                }
+
+                return !!this.client.getMute(selector)
             }
         },
         'channel_colour': {
@@ -37,17 +55,11 @@ export default function generateFeedback(this: Instance, channels: DropdownActio
             label: 'Channel colour',
             description: 'Assigned channel colour',
             options: [
-                {
-                    type: 'dropdown',
-                    label: 'Source',
-                    id: 'source',
-                    choices: channels,
-                    default: ''
-                } as DropdownActionOption
+                generateChannelSourceOption()
             ],
 
             callback: (feedback) => {
-                const [type, channel] = feedback.options.source.split(',')
+                const [type, channel] = feedback.options.channel.split(',')
                 let colour: string = this.client.getColour({ type, channel })
                 if (!colour) return {};
 
@@ -56,7 +68,6 @@ export default function generateFeedback(this: Instance, channels: DropdownActio
 
                 return { bgcolor: this.rgb(R, G, B) }
             }
-
         }
     }
 }

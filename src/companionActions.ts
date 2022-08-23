@@ -1,41 +1,46 @@
-import type { DropdownActionOptionChoice } from "./types/Action"
+import type { DropdownActionOption, DropdownActionOptionChoice } from "./types/Action"
 
-export function generateActions(channels: DropdownActionOptionChoice[]) {
+export function generateActions(channels: DropdownActionOptionChoice[], mixes: DropdownActionOptionChoice[]) {
+	function generateChannelSelectOption(label: string): DropdownActionOption {
+		return {
+			label,
+			type: 'dropdown',
+			id: 'channel',
+			choices: channels,
+			default: ''
+		}
+	}
+
+	function generateMixSelectOption(): DropdownActionOption {
+		return {
+			label: 'Mix to affect',
+			type: 'dropdown',
+			id: 'mix',
+			choices: mixes,
+			default: ''
+		}
+	}
+
 	return {
 		mute: {
 			label: 'Mute channel',
 			options: [
-				{
-					label: 'Channel to mute',
-					type: 'dropdown',
-					id: 'channel',
-					choices: channels,
-					default: ''
-				}
+				generateChannelSelectOption("Channel to mute"),
+				generateMixSelectOption(),
 			]
 		},
 		unmute: {
 			label: 'Unmute channel',
 			options: [
-				{
-					label: 'Channel to unmute',
-					type: 'dropdown',
-					id: 'channel',
-					choices: channels,
-					default: ''
-				}
+				generateChannelSelectOption("Channel to unmute"),
+				generateMixSelectOption(),
 			]
 		},
 		toggleMute: {
 			label: 'Toggle channel mute',
 			options: [
-				{
-					label: 'Channel to mute/unmute',
-					type: 'dropdown',
-					id: 'channel',
-					choices: channels,
-					default: ''
-				}
+				generateChannelSelectOption("Channel to toggle"),
+				generateMixSelectOption(),
 			]
 		}
 	}

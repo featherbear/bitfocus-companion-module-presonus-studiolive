@@ -1,10 +1,11 @@
 const instance_skel = require('../../../instance_skel')
 const mid = require('node-machine-id').machineIdSync({ original: true }).replace(/-/g, '')
 
-import { Client as StudioLiveAPI, MessageCode } from 'presonus-studiolive-api'
+import { ChannelSelector, Client as StudioLiveAPI, MessageCode } from 'presonus-studiolive-api'
 import { generateChannels } from './channels'
 import { generateActions } from './companionActions'
 import generateFeedback from './companionFeedbacks'
+import { generateMixes } from './mixes'
 import { Action } from './types/Action'
 
 type ConfigFields = 'host' | 'port' | 'name'
@@ -14,9 +15,11 @@ class Instance extends instance_skel {
   config: { [k in ConfigFields]: any }
 
   init() {
-    let channels = generateChannels(<any>{})
-    this.setActions(generateActions(channels))
-    this.setFeedbackDefinitions(generateFeedback.call(this, channels));
+    let dummyChannels = generateChannels(<any>{})
+    let dummyMixes = generateMixes(<any>{})
+
+    this.setActions(generateActions(dummyChannels, dummyMixes))
+    this.setFeedbackDefinitions(generateFeedback.call(this, dummyChannels, dummyMixes));
 
     this.setVariableDefinitions([
       {
@@ -54,8 +57,10 @@ class Instance extends instance_skel {
       })
         .then(() => {
           let channels = generateChannels(this.client.channelCounts)
-          this.setActions(generateActions(channels))
-          this.setFeedbackDefinitions(generateFeedback.call(this, channels));
+          let mixes = generateMixes(this.client.channelCounts)
+
+          this.setActions(generateActions(channels, mixes))
+          this.setFeedbackDefinitions(generateFeedback.call(this, channels, mixes));
 
           this.checkFeedbacks('channel_mute')
           this.checkFeedbacks('channel_colour')
@@ -110,20 +115,29 @@ class Instance extends instance_skel {
     const id = data.action
     const opt = data.options
 
+    const [type, channel] = opt.channel.split(',')
+    let selector: ChannelSelector = {
+      type,
+      channel
+    }
+
+    if (opt.mix) {
+      const [type, channel] = opt.mix.split(',');
+      (<ChannelSelector>selector).mixType = type;
+      (<ChannelSelector>selector).mixNumber = channel;
+    }
+
     switch (id) {
       case 'mute': {
-        const [type, channel] = opt.channel.split(',')
-        this.client.mute({ type, channel })
+        this.client.mute(selector)
         break
       }
       case 'unmute': {
-        const [type, channel] = opt.channel.split(',')
-        this.client.unmute({ type, channel })
+        this.client.unmute(selector)
         break
       }
       case 'toggleMute': {
-        const [type, channel] = opt.channel.split(',')
-        this.client.toggleMute({ type, channel })
+        this.client.toggleMute(selector)
         break
       }
     }
