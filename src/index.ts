@@ -41,7 +41,12 @@ class Instance extends instance_skel {
     if (!this.config.host || !this.config.port) {
       this.status(this.STATUS_ERROR, 'Setup')
     } else {
-      this.client = new StudioLiveAPI(this.config.host, this.config.port)
+      this.client = new StudioLiveAPI({
+        host: this.config.host,
+        port: this.config.port
+      }, {
+        autoreconnect: true
+      })
       this.client.on(MessageCode.ParamValue, () => {
         this.checkFeedbacks('channel_mute')
       })

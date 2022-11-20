@@ -1,6 +1,6 @@
 {
   "name": "presonus-studiolive",
-  "version": "1.1.2",
+  "version": "1.2.0",
   "api_version": "1.0.0",
   "scripts": {
     "build": "npm-run-all clean transpile",
@@ -22,7 +22,7 @@
   "license": "MIT",
   "dependencies": {
     "node-machine-id": "^1.1.12",
-    "presonus-studiolive-api": "featherbear/presonus-studiolive-api#d98f400db3411ffa33a315ff348530af28d9115f",
+    "presonus-studiolive-api": "featherbear/presonus-studiolive-api#a0f46827d06f485dbc77f577e17ef611a1ade8df",
     "typescript": "^4.5.4"
   },
   "devDependencies": {
