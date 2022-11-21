@@ -10,34 +10,12 @@ export type DropdownActionOptionChoice = {
     label: string
 }
 
-export type DropdownActionOption = {
-    type: 'dropdown'
 
-    /**
-     * Option label
-     */
+// export type ActionOption = DropdownActionOption
 
-    label: string
+// export interface Action {
+//     label: string
+//     options: ActionOption[]
+// }
 
-    /**
-     * Option ID
-     */
-    id?: string
-
-    choices: Array<DropdownActionOptionChoice>
-
-    /**
-     * Default choice id
-     */
-    default?: string
-
-}
-
-export type ActionOption = DropdownActionOption
-
-export interface Action {
-    label: string
-    options: ActionOption[]
-}
-
-export type Actions = { [id: string]: Action }
+// export type Actions = { [id: string]: Action }

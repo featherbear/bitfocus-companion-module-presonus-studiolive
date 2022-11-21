@@ -1,7 +1,8 @@
-import type { DropdownActionOption, DropdownActionOptionChoice } from "./types/Action"
+import type { DropdownActionOptionChoice } from "./types/Action"
+import type CompanionModule from "./types/CompanionModule"
 
-export function generateActions(channels: DropdownActionOptionChoice[], mixes: DropdownActionOptionChoice[]) {
-	function generateChannelSelectOption(label: string): DropdownActionOption {
+export function generateActions(channels: DropdownActionOptionChoice[], mixes: DropdownActionOptionChoice[]): CompanionModule.CompanionActions {
+	function generateChannelSelectOption(label: string): CompanionModule.CompanionInputFieldDropdown {
 		return {
 			label,
 			type: 'dropdown',
@@ -11,7 +12,7 @@ export function generateActions(channels: DropdownActionOptionChoice[], mixes: D
 		}
 	}
 
-	function generateMixSelectOption(): DropdownActionOption {
+	function generateMixSelectOption(): CompanionModule.CompanionInputFieldDropdown {
 		return {
 			label: 'Mix to affect',
 			type: 'dropdown',

@@ -1,4 +1,3 @@
-const instance_skel = require('../../../instance_skel')
 const mid = require('node-machine-id').machineIdSync({ original: true }).replace(/-/g, '')
 
 import { ChannelSelector, Client as StudioLiveAPI, MessageCode } from 'presonus-studiolive-api'
@@ -6,13 +5,16 @@ import { generateChannels } from './channels'
 import { generateActions } from './companionActions'
 import generateFeedback from './companionFeedbacks'
 import { generateMixes } from './mixes'
-import { Action } from './types/Action'
+import { CompanionModuleInstance } from './types/CompanionModule'
 
-type ConfigFields = 'host' | 'port' | 'name'
+type ConfigType = {
+  host: string
+  port: number
+  name: string
+}
 
-class Instance extends instance_skel {
+class Instance extends CompanionModuleInstance<ConfigType> {
   client: StudioLiveAPI
-  config: { [k in ConfigFields]: any }
 
   init() {
     let dummyChannels = generateChannels(<any>{})
@@ -74,7 +76,7 @@ class Instance extends instance_skel {
           this.setVariable('console_version', this.client.state.get('global.mixer_version'))
           this.setVariable('console_serial', this.client.state.get('global.mixer_serial'))
 
-          this.status(this.STATE_OK)
+          this.status(this.STATUS_OK)
         }).catch(e => {
           this.status(this.STATUS_ERROR, e.message)
         })
@@ -82,7 +84,7 @@ class Instance extends instance_skel {
   }
 
   config_fields() {
-    const fields: { [k in ConfigFields]: { [s: string]: any } } & { [s: string]: any } = {
+    const fields: { [k in keyof ConfigType]: { [s: string]: any } } & { info } = {
       info: {
         type: 'text',
         width: 12,

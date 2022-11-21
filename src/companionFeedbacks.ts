@@ -1,9 +1,10 @@
 import type Instance from './index'
-import type { DropdownActionOption, DropdownActionOptionChoice } from "./types/Action";
+import type { DropdownActionOptionChoice } from "./types/Action";
 import type { ChannelSelector } from 'presonus-studiolive-api';
+import CompanionModule from './types/CompanionModule';
 
-export default function generateFeedback(this: Instance, channels: DropdownActionOptionChoice[], mixes: DropdownActionOptionChoice[]) {
-    function generateChannelSourceOption(): DropdownActionOption {
+export default function generateFeedback(this: Instance, channels: DropdownActionOptionChoice[], mixes: DropdownActionOptionChoice[]): CompanionModule.CompanionFeedbacks {
+    function generateChannelSourceOption(): CompanionModule.CompanionInputFieldDropdown {
         return {
             label: "Source",
             type: 'dropdown',
@@ -12,7 +13,7 @@ export default function generateFeedback(this: Instance, channels: DropdownActio
             default: ''
         }
     }
-    function generateMixSourceOption(): DropdownActionOption {
+    function generateMixSourceOption(): CompanionModule.CompanionInputFieldDropdown {
         return {
             label: "Mix source",
             type: 'dropdown',
@@ -36,13 +37,13 @@ export default function generateFeedback(this: Instance, channels: DropdownActio
                 generateMixSourceOption()
             ],
             callback: (feedback) => {
-                const [type, channel] = feedback.options.channel.split(',')
+                const [type, channel] = <any>(<string>feedback.options.channel).split(',')
                 let selector: ChannelSelector = {
                     type,
                     channel
                 }
                 if (feedback.options.mix) {
-                    const [type, channel] = feedback.options.mix.split(',');
+                    const [type, channel] = <any>(<string>feedback.options.mix).split(',');
                     (<ChannelSelector>selector).mixType = type;
                     (<ChannelSelector>selector).mixNumber = channel;
                 }
@@ -59,7 +60,7 @@ export default function generateFeedback(this: Instance, channels: DropdownActio
             ],
 
             callback: (feedback) => {
-                const [type, channel] = feedback.options.channel.split(',')
+                const [type, channel] = <any>(<string>feedback.options.channel).split(',')
                 let colour: string = this.client.getColour({ type, channel })
                 if (!colour) return {};
 
