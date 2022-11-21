@@ -1,8 +1,8 @@
 
-import type { ChannelTypes, ChannelCount } from 'presonus-studiolive-api';
+import type { ChannelCount } from 'presonus-studiolive-api';
 import type { DropdownActionOptionChoice } from './types/Action'
 
-export function generateMixes(channels: ChannelCount): DropdownActionOptionChoice[] {
+export default function generateMixes(channels: ChannelCount): DropdownActionOptionChoice[] {
     let mixes: DropdownActionOptionChoice[] = [
         { id: '', label: 'Main' },
     ]

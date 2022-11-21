@@ -35,7 +35,7 @@ function formatLabel(tokens: string[]) {
     return builder.join(" ")
 }
 
-export function generateChannels(channels: ChannelCount): DropdownActionOptionChoice[] {
+export default function generateChannels(channels: ChannelCount): DropdownActionOptionChoice[] {
     let entries = Object.entries(channels).map(([name, count]) => {
         let channels = []
 

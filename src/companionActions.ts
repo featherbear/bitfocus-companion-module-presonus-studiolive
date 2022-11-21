@@ -1,7 +1,7 @@
 import type { DropdownActionOptionChoice } from "./types/Action"
 import type CompanionModule from "./types/CompanionModule"
 
-export function generateActions(channels: DropdownActionOptionChoice[], mixes: DropdownActionOptionChoice[]): CompanionModule.CompanionActions {
+export default function generateActions(channels: DropdownActionOptionChoice[], mixes: DropdownActionOptionChoice[]): CompanionModule.CompanionActions {
 	function generateChannelSelectOption(label: string): CompanionModule.CompanionInputFieldDropdown {
 		return {
 			label,

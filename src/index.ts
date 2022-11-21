@@ -1,42 +1,65 @@
 const mid = require('node-machine-id').machineIdSync({ original: true }).replace(/-/g, '')
 
 import { ChannelSelector, Client as StudioLiveAPI, MessageCode } from 'presonus-studiolive-api'
-import { generateChannels } from './channels'
-import { generateActions } from './companionActions'
-import generateFeedback from './companionFeedbacks'
-import { generateMixes } from './mixes'
-import { CompanionModuleInstance } from './types/CompanionModule'
+import generateChannels from './channels'
+import generateActions from './companionActions'
+import generateFeedbacks from './companionFeedbacks'
+import generatePresets from './companionPresets'
+import generateMixes from './mixes'
+import CompanionModule, { CompanionModuleInstance } from './types/CompanionModule'
 
 type ConfigType = {
   host: string
   port: number
   name: string
+  customVariables: string
 }
 
+const defaultVariables: { label: string, name: string }[] = [
+  {
+    label: "Console Model",
+    name: 'console_model',
+  },
+  {
+    label: "Console Version",
+    name: 'console_version',
+  },
+  {
+    label: "Console Serial",
+    name: 'console_serial',
+  },
+]
 class Instance extends CompanionModuleInstance<ConfigType> {
   client: StudioLiveAPI
+  extraVariables: (typeof defaultVariables[number] & { resolver: string, fallback: any })[]
+  intervals: NodeJS.Timeout[]
 
   init() {
+    this.intervals?.forEach(id => clearInterval(id))
+    this.intervals = []
+
     let dummyChannels = generateChannels(<any>{})
     let dummyMixes = generateMixes(<any>{})
 
     this.setActions(generateActions(dummyChannels, dummyMixes))
-    this.setFeedbackDefinitions(generateFeedback.call(this, dummyChannels, dummyMixes));
+    this.setFeedbackDefinitions(generateFeedbacks.call(this, dummyChannels, dummyMixes));
 
-    this.setVariableDefinitions([
-      {
-        label: "Console Model",
-        name: 'console_model',
-      },
-      {
-        label: "Console Version",
-        name: 'console_version',
-      },
-      {
-        label: "Console Serial",
-        name: 'console_serial',
+    let customVariables = this.config.customVariables?.split(";")
+    this.extraVariables = []
+    if (customVariables?.length > 0) {
+      customVariables.map((s) => {
+        const [key, value, fallback] = /^(.+?)=(.+?)(?:\|(.+?))?$/.exec(s)?.slice(1)
+        if (!key || !value) return
+        this.extraVariables.push({
+          name: key,
+          label: "Custom: " + key,
+          resolver: value,
+          fallback
+        })
       }
-    ]);
+      )
+    }
+    this.setVariableDefinitions([...defaultVariables, ...this.extraVariables]);
 
     this.client?.close?.()
 
@@ -49,9 +72,11 @@ class Instance extends CompanionModuleInstance<ConfigType> {
       }, {
         autoreconnect: true
       })
+
       this.client.on(MessageCode.ParamValue, () => {
         this.checkFeedbacks('channel_mute')
       })
+
       this.client.on(MessageCode.ParamChars, () => {
         this.checkFeedbacks('channel_colour')
       })
@@ -67,10 +92,20 @@ class Instance extends CompanionModuleInstance<ConfigType> {
           let mixes = generateMixes(this.client.channelCounts)
 
           this.setActions(generateActions(channels, mixes))
-          this.setFeedbackDefinitions(generateFeedback.call(this, channels, mixes));
+          this.setFeedbackDefinitions(generateFeedbacks.call(this, channels, mixes));
+          this.setPresetDefinitions(generatePresets.call(this, channels, mixes))
 
           this.checkFeedbacks('channel_mute')
           this.checkFeedbacks('channel_colour')
+
+          if (this.extraVariables.length > 0) {
+            this.intervals.push(setInterval(() => {
+              this.extraVariables.forEach((variable) => {
+                this.setVariable(variable.name, this.client.state.get(variable.resolver, variable.fallback))
+              })
+            }, 1000))
+          }
+
 
           this.setVariable('console_model', this.client.state.get('global.mixer_name'))
           this.setVariable('console_version', this.client.state.get('global.mixer_version'))
@@ -84,7 +119,9 @@ class Instance extends CompanionModuleInstance<ConfigType> {
   }
 
   config_fields() {
-    const fields: { [k in keyof ConfigType]: { [s: string]: any } } & { info } = {
+    const fields: { [k in keyof ConfigType]: Omit<CompanionModule.CompanionConfigField, 'id'> & { default?, regex?} } & {
+      info, info2
+    } = {
       info: {
         type: 'text',
         width: 12,
@@ -110,7 +147,20 @@ class Instance extends CompanionModuleInstance<ConfigType> {
         label: 'Client name',
         width: 6,
         default: 'Companion'
+      },
+      info2: {
+        type: 'text',
+        width: 12,
+        label: 'Custom Variables',
+        value: 'Semicolon separated list of `variable=resolver|default` entries. `|default` is optional'
+      },
+      customVariables: {
+        type: 'textinput',
+        label: '',
+        default: 'current_scene=presets.loaded_scene_title;current_project=presets.loaded_project_title',
+        width: 12
       }
+
     }
 
     return Object.entries(fields).map(
@@ -156,7 +206,6 @@ class Instance extends CompanionModuleInstance<ConfigType> {
 
   updateConfig(config) {
     this.config = config
-
 
     this.init()
   }
