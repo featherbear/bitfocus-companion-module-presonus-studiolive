@@ -23,6 +23,10 @@ export default function generatePreset(this: Instance, channels: DropdownActionO
                     channel: channel.id,
                     mix: ''
                 },
+                style: {
+                    color: this.rgb(0, 0, 0),
+                    bgcolor: this.rgb(255, 0, 0)
+                }
             }
         ],
         actions: [
