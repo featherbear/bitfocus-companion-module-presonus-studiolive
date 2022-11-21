@@ -201,6 +201,8 @@ class Instance extends CompanionModuleInstance<ConfigType> {
   }
 
   destroy() {
+    this.intervals?.forEach(id => clearInterval(id))
+    this.client?.close()
     this.debug('destroy', this.id)
   }
 
