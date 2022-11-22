@@ -184,20 +184,45 @@ class Instance extends CompanionModuleInstance<ConfigType> {
       (<ChannelSelector>selector).mixNumber = channel;
     }
 
-    switch (id) {
-      case 'mute': {
-        this.client.mute(selector)
-        break
+    const handle = (id) => {
+      switch (id) {
+        case 'mute': {
+          this.client.mute(selector)
+          break
+        }
+        case 'unmute': {
+          this.client.unmute(selector)
+          break
+        }
+        case 'toggleMute': {
+          this.client.toggleMute(selector)
+          break
+        }
+        case 'mute_smooth': {
+          let currentLevel = this.client.getLevel(selector)
+          this.client.setChannelVolumeLinear(selector, 0, opt.transition).then(() => {
+            this.client.mute(selector)
+            this.client.setChannelVolumeLinear(selector, currentLevel)
+          })
+          break
+        }
+        case 'unmute_smooth': {
+          let currentLevel = this.client.getLevel(selector)
+          this.client.setChannelVolumeLinear(selector, 0, 0).then(() => {
+            this.client.unmute(selector)
+            this.client.setChannelVolumeLinear(selector, currentLevel, opt.transition)
+          })
+
+          break
+        }
+        case 'toggleMute_smooth': {
+          handle(this.client.getMute(selector) ? 'unmute_smooth' : 'mute_smooth')
+          break
+        }
       }
-      case 'unmute': {
-        this.client.unmute(selector)
-        break
-      }
-      case 'toggleMute': {
-        this.client.toggleMute(selector)
-        break
-      }
+
     }
+    handle(id)
   }
 
   destroy() {
