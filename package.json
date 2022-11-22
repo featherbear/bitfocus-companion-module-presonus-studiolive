@@ -1,6 +1,6 @@
 {
   "name": "presonus-studiolive",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "scripts": {
     "build": "npm-run-all clean transpile",
     "clean": "rimraf dist",
@@ -21,7 +21,7 @@
   "license": "MIT",
   "dependencies": {
     "node-machine-id": "^1.1.12",
-    "presonus-studiolive-api": "featherbear/presonus-studiolive-api#a0f46827d06f485dbc77f577e17ef611a1ade8df",
+    "presonus-studiolive-api": "featherbear/presonus-studiolive-api#v1.4.1",
     "typescript": "^4.5.4"
   },
   "devDependencies": {
