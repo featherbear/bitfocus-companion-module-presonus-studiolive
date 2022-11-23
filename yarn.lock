@@ -516,9 +516,9 @@ pify@^3.0.0:
   resolved "https://registry.yarnpkg.com/pify/-/pify-3.0.0.tgz#e5a4acd2c101fdf3d9a4d07f0dbc4db49dd28176"
   integrity sha1-5aSs0sEB/fPZpNB/DbxNtJ3SgXY=
 
-presonus-studiolive-api@featherbear/presonus-studiolive-api#v1.4.1:
+presonus-studiolive-api@featherbear/presonus-studiolive-api#24c376af774485ec2979c5cb87a104edd0a32c19:
   version "1.4.1"
-  resolved "https://codeload.github.com/featherbear/presonus-studiolive-api/tar.gz/190a16452eddada89de8795d5da565b86fc4de93"
+  resolved "https://codeload.github.com/featherbear/presonus-studiolive-api/tar.gz/24c376af774485ec2979c5cb87a104edd0a32c19"
   dependencies:
     "@types/node" "^14.14.6"
     bunyan "^1.8.15"
