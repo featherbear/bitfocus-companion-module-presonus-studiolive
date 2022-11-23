@@ -185,7 +185,7 @@ class Instance extends CompanionModuleInstance<ConfigType> {
         type: 'text',
         width: 12,
         label: 'Custom Variables',
-        value: 'Semicolon separated list of `variable=resolver|default` entries. `|default` is optional'
+        value: 'Semi-colon separated list of `variable=resolver|default` entries. `|default` is optional'
       },
       customVariables: {
         type: 'textinput',
