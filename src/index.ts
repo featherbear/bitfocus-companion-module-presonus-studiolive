@@ -133,8 +133,8 @@ class Instance extends CompanionModuleInstance<ConfigType> {
 
             this.setActions(extendActions(staticActions, generateRecallProjectSceneEntry(
               list.map((map) => ({
-                id: [map.projectName, map.sceneName].join(ValueSeparator),
-                label: [map.projectTitle, map.sceneTitle].join(" - ")
+                id: [map.projectName, map.sceneName].filter(v => v).join(ValueSeparator),
+                label: [map.projectTitle, map.sceneTitle].filter(v => v).join(" - ")
               }))
             )))
           })
@@ -205,33 +205,38 @@ class Instance extends CompanionModuleInstance<ConfigType> {
     const id = data.action
     const opt = data.options
 
-    const [type, channel] = opt.channel.split(ValueSeparator)
-    let selector: ChannelSelector = {
-      type,
-      channel
-    }
+    function readChannel() {
+      const [type, channel] = opt.channel.split(ValueSeparator)
+      let selector: ChannelSelector = {
+        type,
+        channel
+      }
 
-    if (opt.mix) {
-      const [type, channel] = opt.mix.split(ValueSeparator);
-      (<ChannelSelector>selector).mixType = type;
-      (<ChannelSelector>selector).mixNumber = channel;
+      if (opt.mix) {
+        const [type, channel] = opt.mix?.split?.(ValueSeparator);
+        (<ChannelSelector>selector).mixType = type;
+        (<ChannelSelector>selector).mixNumber = channel;
+      }
+
+      return selector
     }
 
     const handle = (id) => {
       switch (id) {
         case 'mute': {
-          this.client.mute(selector)
+          this.client.mute(readChannel())
           break
         }
         case 'unmute': {
-          this.client.unmute(selector)
+          this.client.unmute(readChannel())
           break
         }
         case 'toggleMute': {
-          this.client.toggleMute(selector)
+          this.client.toggleMute(readChannel())
           break
         }
         case 'mute_smooth': {
+          const selector = readChannel()
           let currentLevel = this.client.getLevel(selector)
           this.client.setChannelVolumeLinear(selector, 0, opt.transition).then(() => {
             this.client.mute(selector)
@@ -240,6 +245,7 @@ class Instance extends CompanionModuleInstance<ConfigType> {
           break
         }
         case 'unmute_smooth': {
+          const selector = readChannel()
           let currentLevel = this.client.getLevel(selector)
           this.client.setChannelVolumeLinear(selector, 0, 0).then(() => {
             this.client.unmute(selector)
@@ -249,7 +255,7 @@ class Instance extends CompanionModuleInstance<ConfigType> {
           break
         }
         case 'toggleMute_smooth': {
-          handle(this.client.getMute(selector) ? 'unmute_smooth' : 'mute_smooth')
+          handle(this.client.getMute(readChannel()) ? 'unmute_smooth' : 'mute_smooth')
           break
         }
         case 'recallProjectOrScene': {
@@ -259,6 +265,7 @@ class Instance extends CompanionModuleInstance<ConfigType> {
           } else {
             this.client.recallProject(project)
           }
+          break
         }
       }
 
