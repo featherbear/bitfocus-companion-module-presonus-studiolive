@@ -1,6 +1,7 @@
 
 import type { ChannelTypes, ChannelCount } from 'presonus-studiolive-api';
 import type { DropdownActionOptionChoice } from './types/Action'
+import { ValueSeparator } from './util/Constants';
 
 /**
  * Prettify the channel type labels  
@@ -41,7 +42,7 @@ export default function generateChannels(channels: ChannelCount): DropdownAction
 
         if (count == 1) {
             channels.push({
-                id: `${name},${1}`,
+                id: [name, 1].join(ValueSeparator),
                 label: formatLabel([name])
             })
             return channels
@@ -49,7 +50,7 @@ export default function generateChannels(channels: ChannelCount): DropdownAction
 
         for (let i = 0; i < count; i++) {
             channels.push({
-                id: `${name},${i + 1}`,
+                id: [name, i + 1].join(ValueSeparator),
                 label: formatLabel([name, (i + 1).toString()])
             })
         }

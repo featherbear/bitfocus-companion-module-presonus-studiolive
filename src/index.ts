@@ -2,11 +2,13 @@ const mid = require('node-machine-id').machineIdSync({ original: true }).replace
 
 import { ChannelSelector, Client as StudioLiveAPI, MessageCode } from 'presonus-studiolive-api'
 import generateChannels from './channels'
-import generateActions from './companionActions'
+import generateActions, { extendActions, generateRecallProjectSceneEntry } from './companionActions'
 import generateFeedbacks from './companionFeedbacks'
 import generatePresets from './companionPresets'
 import generateMixes from './mixes'
 import CompanionModule, { CompanionModuleInstance } from './types/CompanionModule'
+import { ValueSeparator } from './util/Constants'
+import { FunctionDebouncer } from './util/FunctionDebouncer'
 
 type ConfigType = {
   host: string
@@ -81,7 +83,6 @@ class Instance extends CompanionModuleInstance<ConfigType> {
         this.checkFeedbacks('channel_colour')
       })
 
-
       this.status(this.STATUS_UNKNOWN, 'Connecting')
       this.client.connect({
         clientDescription: this.config.name, // Name of the client
@@ -91,7 +92,8 @@ class Instance extends CompanionModuleInstance<ConfigType> {
           let channels = generateChannels(this.client.channelCounts)
           let mixes = generateMixes(this.client.channelCounts)
 
-          this.setActions(generateActions(channels, mixes))
+          const staticActions = generateActions(channels, mixes)
+          this.setActions(staticActions)
           this.setFeedbackDefinitions(generateFeedbacks.call(this, channels, mixes));
           this.setPresetDefinitions(generatePresets.call(this, channels, mixes))
 
@@ -106,10 +108,41 @@ class Instance extends CompanionModuleInstance<ConfigType> {
             }, 1000))
           }
 
-
           this.setVariable('console_model', this.client.state.get('global.mixer_name'))
           this.setVariable('console_version', this.client.state.get('global.mixer_version'))
           this.setVariable('console_serial', this.client.state.get('global.mixer_serial'))
+
+          let SceneDebouncer = new FunctionDebouncer(200, true, async () => {
+            let projects = await this.client.getProjects(true)
+            let list: {
+              projectName: string
+              projectTitle: string
+              sceneName?: string
+              sceneTitle?: string
+            }[] = projects.flatMap((project) => [
+              {
+                projectName: project.name,
+                projectTitle: project.title
+              },
+              ...project.scenes.map((scene) => ({
+                projectName: project.name,
+                projectTitle: project.title,
+                sceneName: scene.name,
+                sceneTitle: scene.title
+              }))])
+
+            this.setActions(extendActions(staticActions, generateRecallProjectSceneEntry(
+              list.map((map) => ({
+                id: [map.projectName, map.sceneName].join(ValueSeparator),
+                label: [map.projectTitle, map.sceneTitle].join(" - ")
+              }))
+            )))
+          })
+
+          SceneDebouncer.touchImmediate()
+          this.client.on(MessageCode.JSON, (json) => {
+            if (json.id == 'RenamedPreset' || json.id == 'StoredPreset') SceneDebouncer.touch()
+          })
 
           this.status(this.STATUS_OK)
         }).catch(e => {
@@ -172,14 +205,14 @@ class Instance extends CompanionModuleInstance<ConfigType> {
     const id = data.action
     const opt = data.options
 
-    const [type, channel] = opt.channel.split(',')
+    const [type, channel] = opt.channel.split(ValueSeparator)
     let selector: ChannelSelector = {
       type,
       channel
     }
 
     if (opt.mix) {
-      const [type, channel] = opt.mix.split(',');
+      const [type, channel] = opt.mix.split(ValueSeparator);
       (<ChannelSelector>selector).mixType = type;
       (<ChannelSelector>selector).mixNumber = channel;
     }
@@ -218,6 +251,14 @@ class Instance extends CompanionModuleInstance<ConfigType> {
         case 'toggleMute_smooth': {
           handle(this.client.getMute(selector) ? 'unmute_smooth' : 'mute_smooth')
           break
+        }
+        case 'recallProjectOrScene': {
+          let [project, scene] = (<string>opt.project_scene).split(ValueSeparator)
+          if (scene) {
+            this.client.recallProjectScene(project, scene)
+          } else {
+            this.client.recallProject(project)
+          }
         }
       }
 

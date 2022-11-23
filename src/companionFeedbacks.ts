@@ -2,6 +2,7 @@ import type Instance from './index'
 import type { DropdownActionOptionChoice } from "./types/Action";
 import type { ChannelSelector } from 'presonus-studiolive-api';
 import CompanionModule from './types/CompanionModule';
+import { ValueSeparator } from './util/Constants';
 
 export default function generateFeedback(this: Instance, channels: DropdownActionOptionChoice[], mixes: DropdownActionOptionChoice[]): CompanionModule.CompanionFeedbacks {
     function generateChannelSourceOption(): CompanionModule.CompanionInputFieldDropdown {
@@ -37,13 +38,13 @@ export default function generateFeedback(this: Instance, channels: DropdownActio
                 generateMixSourceOption()
             ],
             callback: (feedback) => {
-                const [type, channel] = <any>(<string>feedback.options.channel).split(',')
+                const [type, channel] = <any>(<string>feedback.options.channel).split(ValueSeparator)
                 let selector: ChannelSelector = {
                     type,
                     channel
                 }
                 if (feedback.options.mix) {
-                    const [type, channel] = <any>(<string>feedback.options.mix).split(',');
+                    const [type, channel] = <any>(<string>feedback.options.mix).split(ValueSeparator);
                     (<ChannelSelector>selector).mixType = type;
                     (<ChannelSelector>selector).mixNumber = channel;
                 }
@@ -60,7 +61,7 @@ export default function generateFeedback(this: Instance, channels: DropdownActio
             ],
 
             callback: (feedback) => {
-                const [type, channel] = <any>(<string>feedback.options.channel).split(',')
+                const [type, channel] = <any>(<string>feedback.options.channel).split(ValueSeparator)
                 let colour: string = this.client.getColour({ type, channel })
                 if (!colour) return {};
 

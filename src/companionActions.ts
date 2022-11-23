@@ -1,6 +1,30 @@
 import type { DropdownActionOptionChoice } from "./types/Action"
 import type CompanionModule from "./types/CompanionModule"
 
+export function extendActions(existing: CompanionModule.CompanionActions, extra: CompanionModule.CompanionActions): CompanionModule.CompanionActions {
+	return {
+		...existing,
+		...extra
+	}
+}
+
+export function generateRecallProjectSceneEntry(choices: CompanionModule.DropdownChoice[]): CompanionModule.CompanionActions {
+	return {
+		recallProjectOrScene: {
+			label: 'Recall Project / Scene',
+			options: [
+				{
+					label: 'Preset',
+					type: 'dropdown',
+					id: 'project_scene',
+					choices,
+					default: ''
+				}
+			]
+		}
+	}
+}
+
 export default function generateActions(channels: DropdownActionOptionChoice[], mixes: DropdownActionOptionChoice[]): CompanionModule.CompanionActions {
 	function generateChannelSelectOption(label: string): CompanionModule.CompanionInputFieldDropdown {
 		return {
@@ -80,7 +104,8 @@ export default function generateActions(channels: DropdownActionOptionChoice[], 
 				generateMixSelectOption(),
 				generateTransitionPeriodOption(200)
 			]
-		}
+		},
+		...generateRecallProjectSceneEntry([])
 	}
 }
 
