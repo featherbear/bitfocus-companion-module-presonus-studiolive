@@ -4,6 +4,7 @@ import { ChannelSelector } from "presonus-studiolive-api"
 import { generateTransitionPeriodOption } from "./util/actionsUtils"
 import type Instance from "."
 import { extractChannelSelector, generateChannelSelectOption, generateMixSelectOption } from "./util/channelUtils"
+import { satisfies } from "semver"
 
 const withChannelSelector = function (fn: (
     action: Parameters<CompanionActionDefinition['callback']>[0],
@@ -19,7 +20,7 @@ const withChannelSelector = function (fn: (
     }) satisfies CompanionActionDefinition['callback']
 }
 
-export default function generateActions(this: Instance, channels: DropdownChoice[], mixes: DropdownChoice[]): CompanionActionDefinitions {
+export default function generateActions(this: Instance, channels: DropdownChoice[], mixes: DropdownChoice[]) {
     const channelSelectOptions = generateChannelSelectOption(channels)
     const mixSelectOptions = generateMixSelectOption(mixes, "Mix Target")
 
@@ -96,7 +97,7 @@ export default function generateActions(this: Instance, channels: DropdownChoice
             }),
         },
         // ...generateRecallProjectSceneEntry([])
-    }
+    } satisfies CompanionActionDefinitions
 
     return map
 }

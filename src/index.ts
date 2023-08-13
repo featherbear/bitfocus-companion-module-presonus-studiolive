@@ -1,10 +1,7 @@
 const mid = require('node-machine-id').machineIdSync({ original: true }).replace(/-/g, '')
 
 import { ChannelSelector, Client as StudioLiveAPI, MessageCode } from 'presonus-studiolive-api'
-import generateChannels from './channels'
 import { generateRecallProjectSceneEntry } from './util/actionsUtils'
-// import generateFeedbacks from './companionFeedbacks.ts.off'
-// import generatePresets from './companionPresets.ts.off'
 import generateMixes from './mixes'
 
 import { ValueSeparator } from './util/Constants'
@@ -13,8 +10,11 @@ import { FunctionDebouncer } from './util/FunctionDebouncer'
 import { CompanionActionDefinitions, CompanionConfigField, Regex, CompanionVariableDefinition, InstanceBase, InstanceStatus, SomeCompanionConfigField, CompanionInputFieldStaticText, runEntrypoint } from '@companion-module/base'
 import ConfigType from './types/Config'
 import DEFAULTS from './defaults'
+
 import generateActions from './actions'
 import generateFeedback from './feedbacks'
+import generatePreset from './presets'
+import generateChannelSelectEntries from './util/channelUtils'
 
 class Instance extends InstanceBase<ConfigType> {
   constructor(internal) {
@@ -98,14 +98,14 @@ class Instance extends InstanceBase<ConfigType> {
       console_serial: this.client.state.get('global.mixer_serial'),
     })
 
-    let channels = generateChannels(this.client.channelCounts)
+    let channels = generateChannelSelectEntries(this.client.channelCounts)
     let mixes = generateMixes(this.client.channelCounts)
 
     const baseActionDefinitions = generateActions.call(this, channels, mixes)
     this.setActionDefinitions(baseActionDefinitions)
-    
+
     this.setFeedbackDefinitions(generateFeedback.call(this, channels, mixes));
-    // this.setPresetDefinitions(generatePresets.call(this, channels, mixes))
+    this.setPresetDefinitions(generatePreset.call(this, channels, mixes))
 
     this.checkFeedbacks('ChannelMute')
     this.checkFeedbacks('ChannelColour')

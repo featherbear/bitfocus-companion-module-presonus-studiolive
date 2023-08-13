@@ -1,10 +1,10 @@
 import { ChannelSelector, Client as StudioLiveAPI, MessageCode } from 'presonus-studiolive-api'
-import generateChannels from './channels'
 import { generateRecallProjectSceneEntry } from './util/actionsUtils'
 // import generateFeedbacks from './companionFeedbacks.ts.off'
 // import generatePresets from './companionPresets.ts.off'
 import generateMixes from './mixes'
 import { CompanionVariableDefinition } from '@companion-module/base'
+import generateChannelSelectEntries from './util/channelUtils'
 
 const consoleStateVariables: Array<CompanionVariableDefinition> = [
     {
@@ -22,7 +22,7 @@ const consoleStateVariables: Array<CompanionVariableDefinition> = [
 ]
 
 
-const dummyChannels = generateChannels(<any>{})
+const dummyChannels = generateChannelSelectEntries(<any>{})
 const dummyMixes = generateMixes(<any>{})
 
 const DEFAULTS = {
