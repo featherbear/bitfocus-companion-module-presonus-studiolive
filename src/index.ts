@@ -118,7 +118,7 @@ class Instance extends InstanceBase<ConfigType> {
             this.consoleStateVariables.reduce(
               (obj, variable) => ({
                 ...obj,
-                [variable.name]: this.client.state.get(variable.resolver, variable.fallback)
+                [variable.variableId]: this.client.state.get(variable.resolver, variable.fallback)
               }), {})
           )
 
