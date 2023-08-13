@@ -1,0 +1,26 @@
+{
+    "manufacturer": "PreSonus",
+    "shortname": "presonus-studiolive",
+    "description": "PreSonus StudioLive III integration for Bitfocus Companion",
+	"id": "presonus-studiolive",
+	"name": "presonus-studiolive",
+	"version": "0.0.0",
+	"license": "MIT",
+	"repository": "git+https://github.com/bitfocus/companion-module-your-module-name.git",
+	"bugs": "https://github.com/bitfocus/companion-module-your-module-name/issues",
+	"maintainers": [
+		{
+			"name": "Andrew Wong",
+			"email": "andrew.j.wong@outlook.com"
+		}
+	],
+	"runtime": {
+		"type": "node18",
+		"api": "nodejs-ipc",
+		"apiVersion": "0.0.0",
+		"entrypoint": "../dist/index.js"
+	},
+	"legacyIds": [],
+	"products": ["StudioLive III"],
+	"keywords": []
+}

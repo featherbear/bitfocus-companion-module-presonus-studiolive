@@ -2,178 +2,233 @@ const mid = require('node-machine-id').machineIdSync({ original: true }).replace
 
 import { ChannelSelector, Client as StudioLiveAPI, MessageCode } from 'presonus-studiolive-api'
 import generateChannels from './channels'
-import generateActions, { extendActions, generateRecallProjectSceneEntry } from './companionActions'
-import generateFeedbacks from './companionFeedbacks'
-import generatePresets from './companionPresets'
+import { generateRecallProjectSceneEntry } from './util/actionsUtils'
+// import generateFeedbacks from './companionFeedbacks.ts.off'
+// import generatePresets from './companionPresets.ts.off'
 import generateMixes from './mixes'
-import CompanionModule, { CompanionModuleInstance } from './types/CompanionModule'
+
 import { ValueSeparator } from './util/Constants'
 import { FunctionDebouncer } from './util/FunctionDebouncer'
 
-type ConfigType = {
-  host: string
-  port: number
-  name: string
-  customVariables: string
-}
 
-const defaultVariables: { label: string, name: string }[] = [
-  {
-    label: "Console Model",
-    name: 'console_model',
-  },
-  {
-    label: "Console Version",
-    name: 'console_version',
-  },
-  {
-    label: "Console Serial",
-    name: 'console_serial',
-  },
-]
-class Instance extends CompanionModuleInstance<ConfigType> {
+
+
+import { CompanionActionDefinitions, CompanionConfigField, Regex, CompanionVariableDefinition, InstanceBase, InstanceStatus, SomeCompanionConfigField, CompanionInputFieldStaticText, runEntrypoint } from '@companion-module/base'
+import ConfigType from './types/Config'
+import DEFAULTS from './defaults'
+import generateActions from './actions'
+
+
+class Instance extends InstanceBase<ConfigType> {
+  constructor(internal) {
+		super(internal)
+	}
+
   client: StudioLiveAPI
-  extraVariables: (typeof defaultVariables[number] & { resolver: string, fallback: any })[]
+  consoleStateVariables: Array<CompanionVariableDefinition & { resolver: string, fallback: any }>
   intervals: NodeJS.Timeout[]
 
-  init() {
+  async destroy(): Promise<void> {
+    throw new Error('Method not implemented.')
+  }
+  async configUpdated(config: ConfigType): Promise<void> {
+    throw new Error('Method not implemented.')
+  }
+
+  /**
+   * Clear any existing intervals
+   */
+  #__resetIntervals() {
     this.intervals?.forEach(id => clearInterval(id))
     this.intervals = []
+  }
 
-    let dummyChannels = generateChannels(<any>{})
-    let dummyMixes = generateMixes(<any>{})
 
-    this.setActions(generateActions(dummyChannels, dummyMixes))
-    this.setFeedbackDefinitions(generateFeedbacks.call(this, dummyChannels, dummyMixes));
 
-    let customVariables = this.config.customVariables?.split(";")
-    this.extraVariables = []
-    if (customVariables?.length > 0) {
-      customVariables.map((s) => {
-        const [key, value, fallback] = /^(.+?)=(.+?)(?:\|(.+?))?$/.exec(s)?.slice(1)
-        if (!key || !value) return
-        this.extraVariables.push({
-          name: key,
-          label: "Custom: " + key,
-          resolver: value,
-          fallback
-        })
-      }
-      )
-    }
-    this.setVariableDefinitions([...defaultVariables, ...this.extraVariables]);
-
+  async reconnect(config: ConfigType) {
+    this.#__resetIntervals()
     this.client?.close?.()
 
-    if (!this.config.host || !this.config.port) {
-      this.status(this.STATUS_ERROR, 'Setup')
-    } else {
-      this.client = new StudioLiveAPI({
-        host: this.config.host,
-        port: this.config.port
-      }, {
-        autoreconnect: true
-      })
+    if (!config.host || !config.port) {
+      this.updateStatus(InstanceStatus.BadConfig, "Console address not set")
+      return
+    }
 
-      this.client.on(MessageCode.ParamValue, () => {
-        this.checkFeedbacks('channel_mute')
-      })
+    /**
+     * Create instance
+     */
+    this.client = new StudioLiveAPI({
+      host: config.host,
+      port: config.port
+    }, {
+      autoreconnect: true
+    })
 
-      this.client.on(MessageCode.ParamChars, () => {
-        this.checkFeedbacks('channel_colour')
-      })
+    /**
+     * Register listeners
+     */
+    this.client.on(MessageCode.ParamValue, () => {
+      this.checkFeedbacks('channel_mute')
+    })
 
-      this.status(this.STATUS_UNKNOWN, 'Connecting')
-      this.client.connect({
-        clientDescription: this.config.name, // Name of the client
-        clientIdentifier: `bitfocus:${mid}` // ID of the client
-      })
-        .then(() => {
-          let channels = generateChannels(this.client.channelCounts)
-          let mixes = generateMixes(this.client.channelCounts)
+    this.client.on(MessageCode.ParamChars, () => {
+      this.checkFeedbacks('channel_colour')
+    })
 
-          const staticActions = generateActions(channels, mixes)
-          this.setActions(staticActions)
-          this.setFeedbackDefinitions(generateFeedbacks.call(this, channels, mixes));
-          this.setPresetDefinitions(generatePresets.call(this, channels, mixes))
+    /**
+     * Connect
+     */
+    this.updateStatus(InstanceStatus.Connecting)
+    await this.client.connect({
+      clientDescription: config.name, // Name of the client
+      clientIdentifier: `bitfocus:${mid}` // ID of the client
+    })
 
-          this.checkFeedbacks('channel_mute')
-          this.checkFeedbacks('channel_colour')
+    /**
+     * Update Companion with console states
+     */
+    this.setVariableValues({
+      console_model: this.client.state.get('global.mixer_name'),
+      console_version: this.client.state.get('global.mixer_version'),
+      console_serial: this.client.state.get('global.mixer_serial'),
+    })
 
-          if (this.extraVariables.length > 0) {
-            this.intervals.push(setInterval(() => {
-              this.extraVariables.forEach((variable) => {
-                this.setVariable(variable.name, this.client.state.get(variable.resolver, variable.fallback))
-              })
-            }, 1000))
-          }
+    let channels = generateChannels(this.client.channelCounts)
+    let mixes = generateMixes(this.client.channelCounts)
 
-          this.setVariable('console_model', this.client.state.get('global.mixer_name'))
-          this.setVariable('console_version', this.client.state.get('global.mixer_version'))
-          this.setVariable('console_serial', this.client.state.get('global.mixer_serial'))
+    const baseActionDefinitions = generateActions.call(this, channels, mixes)
+    this.setActionDefinitions(baseActionDefinitions)
+    // this.setFeedbackDefinitions(generateFeedbacks.call(this, channels, mixes));
+    // this.setPresetDefinitions(generatePresets.call(this, channels, mixes))
 
-          let SceneDebouncer = new FunctionDebouncer(200, true, async () => {
-            let projects = await this.client.getProjects(true)
-            let list: {
-              projectName: string
-              projectTitle: string
-              sceneName?: string
-              sceneTitle?: string
-            }[] = projects.flatMap((project) => [
-              {
-                projectName: project.name,
-                projectTitle: project.title
-              },
-              ...project.scenes.map((scene) => ({
-                projectName: project.name,
-                projectTitle: project.title,
-                sceneName: scene.name,
-                sceneTitle: scene.title
-              }))])
+    this.checkFeedbacks('channel_mute')
+    this.checkFeedbacks('channel_colour')
 
-            this.setActions(extendActions(staticActions, generateRecallProjectSceneEntry(
-              list.map((map) => ({
-                id: [map.projectName, map.sceneName].filter(v => v).join(ValueSeparator),
-                label: [map.projectTitle, map.sceneTitle].filter(v => v).join(" - ")
-              }))
-            )))
-          })
 
-          SceneDebouncer.touchImmediate()
-          this.client.on(MessageCode.JSON, (json) => {
-            if (json.id == 'RenamedPreset' || json.id == 'StoredPreset') SceneDebouncer.touch()
-          })
+    if (this.consoleStateVariables.length > 0) {
+      this.intervals.push(
+        setInterval(() => {
+          this.setVariableValues(
+            this.consoleStateVariables.reduce(
+              (obj, variable) => ({
+                ...obj,
+                [variable.name]: this.client.state.get(variable.resolver, variable.fallback)
+              }), {})
+          )
 
-          this.status(this.STATUS_OK)
-        }).catch(e => {
-          this.status(this.STATUS_ERROR, e.message)
+        }, 1000))
+    }
+
+    /**
+     * Initialise scene debouncer
+     */
+    {
+      const SceneDebouncer = new FunctionDebouncer(200, true, async () => {
+        const projects = await this.client.getProjects(true)
+        const list: {
+          projectName: string
+          projectTitle: string
+          sceneName?: string
+          sceneTitle?: string
+        }[] = projects.flatMap((project) => [
+          {
+            projectName: project.name,
+            projectTitle: project.title
+          },
+          ...project.scenes.map((scene) => ({
+            projectName: project.name,
+            projectTitle: project.title,
+            sceneName: scene.name,
+            sceneTitle: scene.title
+          }))
+        ])
+
+        this.setActionDefinitions({
+          ...baseActionDefinitions,
+          ...generateRecallProjectSceneEntry(
+            list.map((map) => ({
+              id: [map.projectName, map.sceneName].filter(v => v).join(ValueSeparator),
+              label: [map.projectTitle, map.sceneTitle].filter(v => v).join(" - ")
+            }))
+          )
         })
+      })
+
+      SceneDebouncer.touchImmediate()
+      this.client.on(MessageCode.JSON, (json) => {
+        if (json.id == 'RenamedPreset' || json.id == 'StoredPreset') SceneDebouncer.touch()
+      })
+    }
+
+    this.updateStatus(InstanceStatus.Ok)
+  }
+
+  async init(config: ConfigType, isFirstInit: boolean): Promise<void> {
+    // throw new Error('Method not implemented.')
+
+    this.#__resetIntervals()
+
+    if (isFirstInit) {
+      this.setActionDefinitions(generateActions.call(this, DEFAULTS.dummyChannels, DEFAULTS.dummyMixes))
+      // this.setFeedbackDefinitions(generateFeedbacks.call(this, DEFAULTS.dummyChannels, DEFAULTS.dummyMixes));
+    }
+
+    /**
+     * Console state variables
+     */
+    {
+      this.consoleStateVariables = []
+
+      let consoleStateVariables = config.customVariables?.split(";")
+      if (consoleStateVariables?.length > 0) {
+        consoleStateVariables.map((s) => {
+          const [key, value, fallback] = /^(.+?)=(.+?)(?:\|(.+?))?$/.exec(s)?.slice(1)
+          if (!key || !value) return
+          this.consoleStateVariables.push({
+            variableId: key,
+            name: "Custom: " + key,
+            resolver: value,
+            fallback
+          })
+        })
+      }
+
+      this.setVariableDefinitions([...DEFAULTS.consoleStateVariables, ...this.consoleStateVariables]);
+    }
+
+    try {
+      await this.reconnect(config)
+    } catch (e) {
+      this.updateStatus(InstanceStatus.UnknownError, e.message)
     }
   }
 
-  config_fields() {
-    const fields: { [k in keyof ConfigType]: Omit<CompanionModule.CompanionConfigField, 'id'> & { default?, regex?} } & {
-      info, info2
-    } = {
+
+  getConfigFields(): SomeCompanionConfigField[] {
+    const fields: {
+      [k in keyof ConfigType]: Omit<SomeCompanionConfigField, 'id'> & { default?, regex?}
+    } | {
+      [K: string]: Omit<CompanionInputFieldStaticText, 'id'>
+    }
+      = {
       info: {
-        type: 'text',
-        width: 12,
+        type: 'static-text',
         label: 'Information',
-        value: 'This module communicates to a PreSonus StudioLive III console'
+        value: 'This module communicates to a PreSonus StudioLive III console',
       },
       host: {
         type: 'textinput',
         label: 'StudioLive Console IP',
         width: 6,
         default: '',
-        regex: this.REGEX_IP
+        regex: Regex.IP
       },
       port: {
         type: 'textinput',
         label: 'StudioLive Console Port',
         width: 6,
         default: 53000,
-        regex: this.REGEX_PORT
+        regex: Regex.PORT
       },
       name: {
         type: 'textinput',
@@ -182,8 +237,7 @@ class Instance extends CompanionModuleInstance<ConfigType> {
         default: 'Companion'
       },
       info2: {
-        type: 'text',
-        width: 12,
+        type: 'static-text',
         label: 'Custom Variables',
         value: 'Semi-colon separated list of `variable=resolver|default` entries. `|default` is optional'
       },
@@ -193,7 +247,6 @@ class Instance extends CompanionModuleInstance<ConfigType> {
         default: 'current_scene=presets.loaded_scene_title;current_project=presets.loaded_project_title',
         width: 12
       }
-
     }
 
     return Object.entries(fields).map(
@@ -201,90 +254,72 @@ class Instance extends CompanionModuleInstance<ConfigType> {
     )
   }
 
-  action(data: { action: string, options }) {
-    const id = data.action
-    const opt = data.options
+  
 
-    function readChannel() {
-      const [type, channel] = opt.channel.split(ValueSeparator)
-      let selector: ChannelSelector = {
-        type,
-        channel
-      }
+  // action(data: { action: string, options }) {
+  //   const id = data.action
+  //   const opt = data.options
 
-      if (opt.mix) {
-        const [type, channel] = opt.mix?.split?.(ValueSeparator);
-        (<ChannelSelector>selector).mixType = type;
-        (<ChannelSelector>selector).mixNumber = channel;
-      }
 
-      return selector
-    }
 
-    const handle = (id) => {
-      switch (id) {
-        case 'mute': {
-          this.client.mute(readChannel())
-          break
-        }
-        case 'unmute': {
-          this.client.unmute(readChannel())
-          break
-        }
-        case 'toggleMute': {
-          this.client.toggleMute(readChannel())
-          break
-        }
-        case 'mute_smooth': {
-          const selector = readChannel()
-          let currentLevel = this.client.getLevel(selector)
-          this.client.setChannelVolumeLinear(selector, 0, opt.transition).then(() => {
-            this.client.mute(selector)
-            this.client.setChannelVolumeLinear(selector, currentLevel)
-          })
-          break
-        }
-        case 'unmute_smooth': {
-          const selector = readChannel()
-          let currentLevel = this.client.getLevel(selector)
-          this.client.setChannelVolumeLinear(selector, 0, 0).then(() => {
-            this.client.unmute(selector)
-            this.client.setChannelVolumeLinear(selector, currentLevel, opt.transition)
-          })
+  //   const handle = (id) => {
+  //     switch (id) {
+  //       case 'mute': {
+  //         this.client.mute(readChannel())
+  //         break
+  //       }
+  //       case 'unmute': {
+  //         this.client.unmute(readChannel())
+  //         break
+  //       }
+  //       case 'toggleMute': {
+  //         this.client.toggleMute(readChannel())
+  //         break
+  //       }
+  //       case 'mute_smooth': {
+  //         const selector = readChannel()
+  //        
+  //         break
+  //       }
+  //       case 'unmute_smooth': {
+  //         const selector = readChannel()
+  //         
 
-          break
-        }
-        case 'toggleMute_smooth': {
-          handle(this.client.getMute(readChannel()) ? 'unmute_smooth' : 'mute_smooth')
-          break
-        }
-        case 'recallProjectOrScene': {
-          let [project, scene] = (<string>opt.project_scene).split(ValueSeparator)
-          if (scene) {
-            this.client.recallProjectScene(project, scene)
-          } else {
-            this.client.recallProject(project)
-          }
-          break
-        }
-      }
+  //         break
+  //       }
+  //       case 'toggleMute_smooth': {
+  //         break
+  //       }
+  //       case 'recallProjectOrScene': {
+  //         let [project, scene] = (<string>opt.project_scene).split(ValueSeparator)
+  //         if (scene) {
+  //           this.client.recallProjectScene(project, scene)
+  //         } else {
+  //           this.client.recallProject(project)
+  //         }
+  //         break
+  //       }
+  //     }
 
-    }
-    handle(id)
-  }
+  //   }
+  //   handle(id)
+  // }
 
-  destroy() {
-    this.intervals?.forEach(id => clearInterval(id))
-    this.client?.close()
-    this.debug('destroy', this.id)
-  }
+  // destroy() {
+  //   this.intervals?.forEach(id => clearInterval(id))
+  //   this.client?.close()
+  //   this.debug('destroy', this.id)
+  // }
 
-  updateConfig(config) {
-    this.config = config
+  // updateConfig(config) {
+  //   this.config = config
 
-    this.init()
-  }
+  //   this.init()
+  // }
 }
 
-module.exports = Instance
+// type InstanceType = typeof Instance
+// export default InstanceType
 export default Instance
+
+runEntrypoint(Instance, [])

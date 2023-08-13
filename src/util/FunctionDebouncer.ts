@@ -38,7 +38,7 @@ export class FunctionDebouncer {
     }
 
     /**
-     * Immediate execute the callback, cancelling the timer
+     * Immediate execute the callback, cancelling any existing debounce
      */
     touchImmediate() {
         this.#clearTimeout()

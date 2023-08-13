@@ -1,7 +1,7 @@
 
 import type { ChannelTypes, ChannelCount } from 'presonus-studiolive-api';
-import type { DropdownActionOptionChoice } from './types/Action'
 import { ValueSeparator } from './util/Constants';
+import { DropdownChoice } from '@companion-module/base';
 
 /**
  * Prettify the channel type labels  
@@ -36,7 +36,7 @@ function formatLabel(tokens: string[]) {
     return builder.join(" ")
 }
 
-export default function generateChannels(channels: ChannelCount): DropdownActionOptionChoice[] {
+export default function generateChannels(channels: ChannelCount): DropdownChoice[] {
     let entries = Object.entries(channels).map(([name, count]) => {
         let channels = []
 
