@@ -17,8 +17,7 @@ export default function generateActions_projectScenes(this: Instance, project_sc
                     default: ''
                 }
             ],
-            callback(action, context) {
-
+            callback: (action, context) => {
                 let [project, scene] = (<string>action.options[key]).split(ValueSeparator)
                 if (!project) return
 
