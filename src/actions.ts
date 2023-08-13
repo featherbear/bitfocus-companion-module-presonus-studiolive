@@ -1,12 +1,27 @@
 
 import type { CompanionActionDefinition, CompanionActionDefinitions, CompanionInputFieldDropdown, CompanionInputFieldNumber, DropdownChoice } from "@companion-module/base"
 import { ChannelSelector } from "presonus-studiolive-api"
-import { generateChannelSelectOption, generateMixSelectOption, generateTransitionPeriodOption, withChannelSelector } from "./util/actionsUtils"
+import { generateTransitionPeriodOption } from "./util/actionsUtils"
 import type Instance from "."
+import { extractChannelSelector, generateChannelSelectOption, generateMixSelectOption } from "./util/channelUtils"
+
+const withChannelSelector = function (fn: (
+    action: Parameters<CompanionActionDefinition['callback']>[0],
+    context: Parameters<CompanionActionDefinition['callback']>[1],
+    channel: ChannelSelector
+) => Promise<void> | void) {
+    return ((action, context) => {
+
+        const selector = extractChannelSelector(action.options)
+        if (!selector) return
+
+        return fn(action, context, selector)
+    }) satisfies CompanionActionDefinition['callback']
+}
 
 export default function generateActions(this: Instance, channels: DropdownChoice[], mixes: DropdownChoice[]): CompanionActionDefinitions {
     const channelSelectOptions = generateChannelSelectOption(channels)
-    const mixSelectOptions = generateMixSelectOption(mixes)
+    const mixSelectOptions = generateMixSelectOption(mixes, "Mix Target")
 
     const map = {
         mute: {
@@ -26,13 +41,7 @@ export default function generateActions(this: Instance, channels: DropdownChoice
                 mixSelectOptions
             ],
             callback: withChannelSelector((action, context, channel) => {
-                console.log('unmute', action, context, channel);
-                console.log(this);
-                console.log(this.client);
-                console.log(this.client.unmute);
                 this.client.unmute(channel)
-                console.log('a');
-
             }),
         },
         toggleMute: {
@@ -42,7 +51,6 @@ export default function generateActions(this: Instance, channels: DropdownChoice
                 mixSelectOptions
             ], callback: withChannelSelector((action, context, channel) => {
                 this.client.toggleMute(channel)
-
             })
         },
         mute_smooth: {

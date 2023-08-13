@@ -19,7 +19,7 @@
     "@companion-module/base": "^1.4.1",
     "node-machine-id": "^1.1.12",
     "presonus-studiolive-api": "featherbear/presonus-studiolive-api#24c376af774485ec2979c5cb87a104edd0a32c19",
-    "typescript": "^4.5.4"
+    "typescript": "^4.9"
   },
   "devDependencies": {
     "@companion-module/tools": "^1.3.2",

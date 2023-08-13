@@ -10,29 +10,31 @@ import generateMixes from './mixes'
 import { ValueSeparator } from './util/Constants'
 import { FunctionDebouncer } from './util/FunctionDebouncer'
 
-
-
-
 import { CompanionActionDefinitions, CompanionConfigField, Regex, CompanionVariableDefinition, InstanceBase, InstanceStatus, SomeCompanionConfigField, CompanionInputFieldStaticText, runEntrypoint } from '@companion-module/base'
 import ConfigType from './types/Config'
 import DEFAULTS from './defaults'
 import generateActions from './actions'
-
+import generateFeedback from './feedbacks'
 
 class Instance extends InstanceBase<ConfigType> {
   constructor(internal) {
-		super(internal)
-	}
+    super(internal)
+  }
+
+  checkFeedbacks(...feedbackTypes: (keyof ReturnType<typeof generateFeedback>)[]): void {
+    super.checkFeedbacks(...feedbackTypes)
+  }
 
   client: StudioLiveAPI
   consoleStateVariables: Array<CompanionVariableDefinition & { resolver: string, fallback: any }>
   intervals: NodeJS.Timeout[]
 
-  async destroy(): Promise<void> {
-    throw new Error('Method not implemented.')
+  async destroy() {
+    return this.#__disconnect()
   }
-  async configUpdated(config: ConfigType): Promise<void> {
-    throw new Error('Method not implemented.')
+
+  async configUpdated(config: ConfigType) {
+    return this.init(config, false)
   }
 
   /**
@@ -44,10 +46,13 @@ class Instance extends InstanceBase<ConfigType> {
   }
 
 
-
-  async reconnect(config: ConfigType) {
+  #__disconnect() {
     this.#__resetIntervals()
     this.client?.close?.()
+  }
+
+  async reconnect(config: ConfigType) {
+    this.#__disconnect()
 
     if (!config.host || !config.port) {
       this.updateStatus(InstanceStatus.BadConfig, "Console address not set")
@@ -68,11 +73,11 @@ class Instance extends InstanceBase<ConfigType> {
      * Register listeners
      */
     this.client.on(MessageCode.ParamValue, () => {
-      this.checkFeedbacks('channel_mute')
+      this.checkFeedbacks('ChannelMute')
     })
 
     this.client.on(MessageCode.ParamChars, () => {
-      this.checkFeedbacks('channel_colour')
+      this.checkFeedbacks('ChannelColour')
     })
 
     /**
@@ -98,11 +103,12 @@ class Instance extends InstanceBase<ConfigType> {
 
     const baseActionDefinitions = generateActions.call(this, channels, mixes)
     this.setActionDefinitions(baseActionDefinitions)
-    // this.setFeedbackDefinitions(generateFeedbacks.call(this, channels, mixes));
+    
+    this.setFeedbackDefinitions(generateFeedback.call(this, channels, mixes));
     // this.setPresetDefinitions(generatePresets.call(this, channels, mixes))
 
-    this.checkFeedbacks('channel_mute')
-    this.checkFeedbacks('channel_colour')
+    this.checkFeedbacks('ChannelMute')
+    this.checkFeedbacks('ChannelColour')
 
 
     if (this.consoleStateVariables.length > 0) {
@@ -164,9 +170,7 @@ class Instance extends InstanceBase<ConfigType> {
   }
 
   async init(config: ConfigType, isFirstInit: boolean): Promise<void> {
-    // throw new Error('Method not implemented.')
-
-    this.#__resetIntervals()
+    this.#__disconnect()
 
     if (isFirstInit) {
       this.setActionDefinitions(generateActions.call(this, DEFAULTS.dummyChannels, DEFAULTS.dummyMixes))
@@ -254,42 +258,7 @@ class Instance extends InstanceBase<ConfigType> {
     )
   }
 
-  
 
-  // action(data: { action: string, options }) {
-  //   const id = data.action
-  //   const opt = data.options
-
-
-
-  //   const handle = (id) => {
-  //     switch (id) {
-  //       case 'mute': {
-  //         this.client.mute(readChannel())
-  //         break
-  //       }
-  //       case 'unmute': {
-  //         this.client.unmute(readChannel())
-  //         break
-  //       }
-  //       case 'toggleMute': {
-  //         this.client.toggleMute(readChannel())
-  //         break
-  //       }
-  //       case 'mute_smooth': {
-  //         const selector = readChannel()
-  //        
-  //         break
-  //       }
-  //       case 'unmute_smooth': {
-  //         const selector = readChannel()
-  //         
-
-  //         break
-  //       }
-  //       case 'toggleMute_smooth': {
-  //         break
-  //       }
   //       case 'recallProjectOrScene': {
   //         let [project, scene] = (<string>opt.project_scene).split(ValueSeparator)
   //         if (scene) {
@@ -305,21 +274,9 @@ class Instance extends InstanceBase<ConfigType> {
   //   handle(id)
   // }
 
-  // destroy() {
-  //   this.intervals?.forEach(id => clearInterval(id))
-  //   this.client?.close()
-  //   this.debug('destroy', this.id)
-  // }
 
-  // updateConfig(config) {
-  //   this.config = config
-
-  //   this.init()
-  // }
 }
 
-// type InstanceType = typeof Instance
-// export default InstanceType
 export default Instance
 
 runEntrypoint(Instance, [])
