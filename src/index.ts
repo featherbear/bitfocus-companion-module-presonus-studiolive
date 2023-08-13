@@ -1,15 +1,15 @@
 const mid = require('node-machine-id').machineIdSync({ original: true }).replace(/-/g, '')
 
-import { ChannelSelector, Client as StudioLiveAPI, MessageCode } from 'presonus-studiolive-api'
-import { generateRecallProjectSceneEntry } from './util/actionsUtils'
+import { MessageCode, Client as StudioLiveAPI } from 'presonus-studiolive-api'
 import generateMixes from './mixes'
+import { generateRecallProjectSceneEntry } from './util/actionsUtils'
 
 import { ValueSeparator } from './util/Constants'
 import { FunctionDebouncer } from './util/FunctionDebouncer'
 
-import { CompanionActionDefinitions, CompanionConfigField, Regex, CompanionVariableDefinition, InstanceBase, InstanceStatus, SomeCompanionConfigField, CompanionInputFieldStaticText, runEntrypoint } from '@companion-module/base'
-import ConfigType from './types/Config'
+import { CompanionInputFieldStaticText, CompanionVariableDefinition, InstanceBase, InstanceStatus, Regex, SomeCompanionConfigField, runEntrypoint } from '@companion-module/base'
 import DEFAULTS from './defaults'
+import ConfigType from './types/Config'
 
 import generateActions from './actions'
 import generateFeedback from './feedbacks'

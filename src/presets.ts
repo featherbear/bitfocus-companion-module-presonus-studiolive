@@ -1,8 +1,7 @@
 import { CompanionPresetDefinitions, DropdownChoice, combineRgb } from '@companion-module/base'
-import type Instance from './index'
-import type { ChannelSelectorOption } from './types/OptionSets'
-import generateFeedback from './feedbacks'
 import generateActions from './actions'
+import generateFeedback from './feedbacks'
+import type Instance from './index'
 
 export default function generatePreset(this: Instance, channels: DropdownChoice[], mixes: DropdownChoice[]) {
     let presets: CompanionPresetDefinitions & {

@@ -1,9 +1,8 @@
 import { CompanionFeedbackDefinition, CompanionFeedbackDefinitions, DropdownChoice, combineRgb } from '@companion-module/base';
 
-import type Instance from './index'
 import type { ChannelSelector } from 'presonus-studiolive-api';
+import type Instance from './index';
 import { extractChannelSelector, generateChannelSelectOption, generateMixSelectOption } from './util/channelUtils';
-import { satisfies } from 'semver';
 
 const withChannelSelector = function <T>(fn: (
     action: Parameters<CompanionFeedbackDefinition['callback']>[0],

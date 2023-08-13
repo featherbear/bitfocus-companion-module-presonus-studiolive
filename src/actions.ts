@@ -1,10 +1,9 @@
 
-import type { CompanionActionDefinition, CompanionActionDefinitions, CompanionInputFieldDropdown, CompanionInputFieldNumber, DropdownChoice } from "@companion-module/base"
+import type { CompanionActionDefinition, CompanionActionDefinitions, DropdownChoice } from "@companion-module/base"
 import { ChannelSelector } from "presonus-studiolive-api"
-import { generateTransitionPeriodOption } from "./util/actionsUtils"
 import type Instance from "."
+import { generateTransitionPeriodOption } from "./util/actionsUtils"
 import { extractChannelSelector, generateChannelSelectOption, generateMixSelectOption } from "./util/channelUtils"
-import { satisfies } from "semver"
 
 const withChannelSelector = function (fn: (
     action: Parameters<CompanionActionDefinition['callback']>[0],
