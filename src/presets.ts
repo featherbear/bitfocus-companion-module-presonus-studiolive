@@ -1,5 +1,5 @@
 import { CompanionPresetDefinitions, DropdownChoice, combineRgb } from '@companion-module/base'
-import generateActions from './actions'
+import generateActions_channels from './actions/channels'
 import generateFeedback from './feedbacks'
 import type Instance from './index'
 
@@ -8,8 +8,8 @@ export default function generatePreset(this: Instance, channels: DropdownChoice[
         [id: string]: {
             feedbacks: { feedbackId: keyof ReturnType<typeof generateFeedback> }[],
             steps: {
-                down: { actionId: keyof ReturnType<typeof generateActions> }[]
-                up: { actionId: keyof ReturnType<typeof generateActions> }[]
+                down: { actionId: keyof ReturnType<typeof generateActions_channels> }[]
+                up: { actionId: keyof ReturnType<typeof generateActions_channels> }[]
             }[]
         }
     } = {}

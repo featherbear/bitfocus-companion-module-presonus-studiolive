@@ -2,7 +2,6 @@ const mid = require('node-machine-id').machineIdSync({ original: true }).replace
 
 import { MessageCode, Client as StudioLiveAPI } from 'presonus-studiolive-api'
 import generateMixes from './mixes'
-import { generateRecallProjectSceneEntry } from './util/actionsUtils'
 
 import { ValueSeparator } from './util/Constants'
 import { FunctionDebouncer } from './util/FunctionDebouncer'
@@ -11,7 +10,9 @@ import { CompanionInputFieldStaticText, CompanionVariableDefinition, InstanceBas
 import DEFAULTS from './defaults'
 import ConfigType from './types/Config'
 
-import generateActions from './actions'
+import generateActions_channels from './actions/channels'
+import generateActions_projectScenes from './actions/projectScenes'
+
 import generateFeedback from './feedbacks'
 import generatePreset from './presets'
 import generateChannelSelectEntries from './util/channelUtils'
@@ -101,8 +102,8 @@ class Instance extends InstanceBase<ConfigType> {
     let channels = generateChannelSelectEntries(this.client.channelCounts)
     let mixes = generateMixes(this.client.channelCounts)
 
-    const baseActionDefinitions = generateActions.call(this, channels, mixes)
-    this.setActionDefinitions(baseActionDefinitions)
+    const actions_channels = generateActions_channels.call(this, channels, mixes)
+    this.setActionDefinitions({ ...actions_channels })
 
     this.setFeedbackDefinitions(generateFeedback.call(this, channels, mixes));
     this.setPresetDefinitions(generatePreset.call(this, channels, mixes))
@@ -149,14 +150,20 @@ class Instance extends InstanceBase<ConfigType> {
           }))
         ])
 
-        this.setActionDefinitions({
-          ...baseActionDefinitions,
-          ...generateRecallProjectSceneEntry(
-            list.map((map) => ({
+        const actions_projectScenes = generateActions_projectScenes.call(this,
+          [
+            { id: '', label: '' },
+            ...list.map((map) => ({
+              // TODO: Use a better sentinel that can't be used in the preset name
               id: [map.projectName, map.sceneName].filter(v => v).join(ValueSeparator),
               label: [map.projectTitle, map.sceneTitle].filter(v => v).join(" - ")
             }))
-          )
+          ]
+        )
+
+        this.setActionDefinitions({
+          ...actions_channels,
+          ...actions_projectScenes
         })
       })
 
@@ -173,8 +180,8 @@ class Instance extends InstanceBase<ConfigType> {
     this.#__disconnect()
 
     if (isFirstInit) {
-      this.setActionDefinitions(generateActions.call(this, DEFAULTS.dummyChannels, DEFAULTS.dummyMixes))
-      // this.setFeedbackDefinitions(generateFeedbacks.call(this, DEFAULTS.dummyChannels, DEFAULTS.dummyMixes));
+      this.setActionDefinitions(generateActions_channels.call(this, DEFAULTS.dummyChannels, DEFAULTS.dummyMixes))
+      this.setFeedbackDefinitions(generateFeedback.call(this, DEFAULTS.dummyChannels, DEFAULTS.dummyMixes));
     }
 
     /**
@@ -257,24 +264,6 @@ class Instance extends InstanceBase<ConfigType> {
       ([id, obj]) => ({ ...obj, id })
     )
   }
-
-
-  //       case 'recallProjectOrScene': {
-  //         let [project, scene] = (<string>opt.project_scene).split(ValueSeparator)
-  //         if (scene) {
-  //           this.client.recallProjectScene(project, scene)
-  //         } else {
-  //           this.client.recallProject(project)
-  //         }
-  //         break
-  //       }
-  //     }
-
-  //   }
-  //   handle(id)
-  // }
-
-
 }
 
 export default Instance

@@ -1,9 +1,9 @@
 
 import type { CompanionActionDefinition, CompanionActionDefinitions, DropdownChoice } from "@companion-module/base"
 import { ChannelSelector } from "presonus-studiolive-api"
-import type Instance from "."
-import { generateTransitionPeriodOption } from "./util/actionsUtils"
-import { extractChannelSelector, generateChannelSelectOption, generateMixSelectOption } from "./util/channelUtils"
+import type Instance from ".."
+import { generateTransitionPeriodOption } from "../util/actionsUtils"
+import { extractChannelSelector, generateChannelSelectOption, generateMixSelectOption } from "../util/channelUtils"
 
 const withChannelSelector = function (fn: (
     action: Parameters<CompanionActionDefinition['callback']>[0],
@@ -19,7 +19,7 @@ const withChannelSelector = function (fn: (
     }) satisfies CompanionActionDefinition['callback']
 }
 
-export default function generateActions(this: Instance, channels: DropdownChoice[], mixes: DropdownChoice[]) {
+export default function generateActions_channels(this: Instance, channels: DropdownChoice[], mixes: DropdownChoice[]) {
     const channelSelectOptions = generateChannelSelectOption(channels)
     const mixSelectOptions = generateMixSelectOption(mixes, "Mix Target")
 
@@ -86,6 +86,7 @@ export default function generateActions(this: Instance, channels: DropdownChoice
         },
         toggleMute_smooth: {
             name: 'Smooth toggle channel mute',
+            description: 'Brings fader to/from -∞ before/after muting/unmuting',
             options: [
                 channelSelectOptions,
                 mixSelectOptions,
@@ -94,8 +95,7 @@ export default function generateActions(this: Instance, channels: DropdownChoice
                 const fn = this.client.getMute(channel) ? map.unmute_smooth : map.mute_smooth
                 fn.callback(action, context)
             }),
-        },
-        // ...generateRecallProjectSceneEntry([])
+        }
     } satisfies CompanionActionDefinitions
 
     return map
