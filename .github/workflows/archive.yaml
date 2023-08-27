@@ -2,7 +2,7 @@ name: Package
 on: [push, workflow_dispatch]
 
 jobs:
-  linux64:
+  package:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v3
