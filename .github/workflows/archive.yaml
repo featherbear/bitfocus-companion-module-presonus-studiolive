@@ -16,6 +16,8 @@ jobs:
           yarn build:dist
           mkdir module-presonus-studiolive
           cp -r companion dist module-presonus-studiolive/
+          mkdir -p module-presonus-studiolive/node_modules/@companion-module
+          cp -r node_modules/@companion-module/base module-presonus-studiolive/node_modules/@companion-module
           zip -9 -r module-presonus-studiolive.zip module-presonus-studiolive/
 
       - name: Upload
