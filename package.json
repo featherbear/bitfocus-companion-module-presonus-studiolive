@@ -3,9 +3,10 @@
   "version": "1.2.2",
   "scripts": {
     "build": "npm-run-all clean transpile",
-    "clean": "rimraf dist",
+    "build:dist": "npm-run-all clean bundle",
     "transpile": "tsc",
-    "install": "npm run --silent transpile"
+    "bundle": "esbuild src/index.ts --platform=node --bundle --external:dtrace-provider --outdir=dist --minify",
+    "clean": "rimraf dist"
   },
   "keywords": [
     "presonus",
@@ -23,6 +24,7 @@
   },
   "devDependencies": {
     "@companion-module/tools": "^1.3.2",
+    "esbuild": "^0.19.2",
     "npm-run-all": "^4.1.5",
     "rimraf": "^3.0.2"
   }
