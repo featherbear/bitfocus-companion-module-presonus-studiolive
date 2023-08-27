@@ -1,0 +1,25 @@
+name: Package 
+on: [push, workflow_dispatch]
+
+jobs:
+  linux64:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v3
+      - name: Use Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18.17.1'
+      - name: Build
+        run: |
+          yarn install --frozen-lock-file
+          yarn build:dist
+          mkdir module-presonus-studiolive
+          cp -r companion dist module-presonus-studiolive/
+          zip -9 -r module-presonus-studiolive.zip module-presonus-studiolive/
+
+      - name: Upload
+        uses: actions/upload-artifact@v3
+        with:
+          name: module-presonus-studiolive.zip
+          path: module-presonus-studiolive.zip
