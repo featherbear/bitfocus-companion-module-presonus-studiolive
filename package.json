@@ -5,7 +5,7 @@
     "build": "npm-run-all clean transpile",
     "build:dist": "npm-run-all clean bundle",
     "transpile": "tsc",
-    "bundle": "esbuild src/index.ts --platform=node --bundle --external:@companion-module/base --external:dtrace-provider --outdir=dist --minify",
+    "bundle": "esbuild src/index.ts --platform=node --bundle --external:dtrace-provider --outdir=dist --minify",
     "clean": "rimraf dist"
   },
   "keywords": [
