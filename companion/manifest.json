@@ -6,8 +6,8 @@
 	"name": "presonus-studiolive",
 	"version": "0.0.0",
 	"license": "MIT",
-	"repository": "git+https://github.com/bitfocus/companion-module-your-module-name.git",
-	"bugs": "https://github.com/bitfocus/companion-module-your-module-name/issues",
+	"repository": "git+https://github.com/featherbear/bitfocus-companion-module-presonus-studiolive.git",
+	"bugs": "https://github.com/featherbear/bitfocus-companion-module-presonus-studiolive/issues",
 	"maintainers": [
 		{
 			"name": "Andrew Wong",
