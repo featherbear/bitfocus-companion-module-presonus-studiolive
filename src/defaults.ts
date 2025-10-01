@@ -1,4 +1,4 @@
-import { CompanionVariableDefinition } from '@companion-module/base'
+import type { CompanionVariableDefinition } from '@companion-module/base'
 import generateMixes from './mixes'
 import generateChannelSelectEntries from './util/channelUtils'
 

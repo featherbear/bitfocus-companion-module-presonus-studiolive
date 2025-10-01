@@ -1,9 +1,8 @@
-import type { CompanionActionDefinition, CompanionActionDefinitions, CompanionInputFieldDropdown, CompanionInputFieldNumber, CompanionOptionValues, DropdownChoice } from "@companion-module/base"
-import { ChannelSelector } from "presonus-studiolive-api"
+import type { CompanionInputFieldDropdown, CompanionOptionValues, DropdownChoice } from "@companion-module/base";
+import type { ChannelCount, ChannelSelector, ChannelTypes } from "presonus-studiolive-api";
 import { ValueSeparator } from './Constants';
-import type { ChannelTypes, ChannelCount } from 'presonus-studiolive-api';
 
-export function generateChannelSelectOption(channels: DropdownChoice[], label: string = "Channel"): CompanionInputFieldDropdown {
+export function generateChannelSelectOption(channels: DropdownChoice[], label = "Channel"): CompanionInputFieldDropdown {
     return {
         label,
         type: 'dropdown',
@@ -14,7 +13,7 @@ export function generateChannelSelectOption(channels: DropdownChoice[], label: s
 }
 
 
-export function generateMixSelectOption(mixes: DropdownChoice[], label: string = "Mix target"): CompanionInputFieldDropdown {
+export function generateMixSelectOption(mixes: DropdownChoice[], label = "Mix target"): CompanionInputFieldDropdown {
     return {
         label,
         type: 'dropdown',
@@ -26,7 +25,7 @@ export function generateMixSelectOption(mixes: DropdownChoice[], label: string =
 
 export function extractChannelSelector(options: CompanionOptionValues) {
     const [type, channel] = (<string>options.channel).split(ValueSeparator)
-    let selector: ChannelSelector = <any>{}
+    const selector: ChannelSelector = <any>{}
 
     if (!type || !channel) return
 

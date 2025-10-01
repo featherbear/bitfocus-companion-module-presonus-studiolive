@@ -1,5 +1,5 @@
-import { CompanionActionDefinitions, DropdownChoice } from "@companion-module/base";
-import Instance from "..";
+import type { CompanionActionDefinitions, DropdownChoice } from "@companion-module/base";
+import type Instance from "../";
 import { ValueSeparator } from "../util/Constants";
 
 export default function generateActions_projectScenes(this: Instance, project_scenes: DropdownChoice[]) {
@@ -18,7 +18,7 @@ export default function generateActions_projectScenes(this: Instance, project_sc
                 }
             ],
             callback: (action, context) => {
-                let [project, scene] = (<string>action.options[key]).split(ValueSeparator)
+                const [project, scene] = (<string>action.options[key]).split(ValueSeparator)
                 if (!project) return
 
                 if (scene) {

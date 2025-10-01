@@ -25,6 +25,7 @@ export default tseslint.config(
             "prefer-const": "off",
             "prefer-spread": "off",
             "no-dupe-class-members": "off",
+            "no-extra-boolean-cast": "off",
             "space-before-function-paren": "off",
             "@typescript-eslint/no-duplicate-enum-values": "warn",
             "@typescript-eslint/no-explicit-any": "off",

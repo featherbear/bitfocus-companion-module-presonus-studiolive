@@ -18,6 +18,7 @@ const withChannelSelector = function <T>(fn: (
 
 }
 
+export type FeedbackDefinitions = ReturnType<typeof generateFeedback>
 export default function generateFeedback(this: Instance, channels: DropdownChoice[], mixes: DropdownChoice[]) {
     const channelSelectOptions = generateChannelSelectOption(channels)
     const mixSelectOptions = generateMixSelectOption(mixes, "Mix Source")
@@ -53,8 +54,11 @@ export default function generateFeedback(this: Instance, channels: DropdownChoic
                 let colour: string = this.client.getColour(channel)
                 if (!colour) return {};
 
-                const [R, G, B, A] = Buffer.from(colour, 'hex')
-                if (R + G + B == 0) return {};
+                const [R, G, B] = Buffer.from(colour, 'hex')
+                
+                // Black, set to empty
+                // perhaps we should set to black though?
+                if (R + G + B === 0) return {};
 
                 return {
                     bgcolor: combineRgb(R, G, B)

@@ -1,6 +1,6 @@
 
 import type { CompanionActionDefinition, CompanionActionDefinitions, DropdownChoice } from "@companion-module/base"
-import { ChannelSelector } from "presonus-studiolive-api"
+import type { ChannelSelector } from "presonus-studiolive-api"
 import type Instance from ".."
 import { generateTransitionPeriodOption } from "../util/actionsUtils"
 import { extractChannelSelector, generateChannelSelectOption, generateMixSelectOption } from "../util/channelUtils"
@@ -19,11 +19,12 @@ const withChannelSelector = function (fn: (
     }) satisfies CompanionActionDefinition['callback']
 }
 
+export type GeneratedChannelActions = ReturnType<typeof generateActions_channels>
 export default function generateActions_channels(this: Instance, channels: DropdownChoice[], mixes: DropdownChoice[]) {
     const channelSelectOptions = generateChannelSelectOption(channels)
     const mixSelectOptions = generateMixSelectOption(mixes, "Mix Target")
 
-    const map = {
+    const actions = {
         mute: {
             name: 'Mute channel',
             options: [
@@ -61,7 +62,7 @@ export default function generateActions_channels(this: Instance, channels: Dropd
                 mixSelectOptions,
                 generateTransitionPeriodOption(200)
             ], callback: withChannelSelector((action, context, channel) => {
-                let currentLevel = this.client.getLevel(channel)
+                const currentLevel = this.client.getLevel(channel)
                 this.client.setChannelVolumeLinear(channel, 0, <number>action.options.transition).then(() => {
                     this.client.mute(channel)
                     this.client.setChannelVolumeLinear(channel, currentLevel)
@@ -76,7 +77,7 @@ export default function generateActions_channels(this: Instance, channels: Dropd
                 mixSelectOptions,
                 generateTransitionPeriodOption(200)
             ], callback: withChannelSelector((action, context, channel) => {
-                let currentLevel = this.client.getLevel(channel)
+                const currentLevel = this.client.getLevel(channel)
 
                 this.client.setChannelVolumeLinear(channel, 0, 0).then(() => {
                     this.client.unmute(channel)
@@ -92,11 +93,11 @@ export default function generateActions_channels(this: Instance, channels: Dropd
                 mixSelectOptions,
                 generateTransitionPeriodOption(200)
             ], callback: withChannelSelector((action, context, channel) => {
-                const fn = this.client.getMute(channel) ? map.unmute_smooth : map.mute_smooth
+                const fn = this.client.getMute(channel) ? actions.unmute_smooth : actions.mute_smooth
                 fn.callback(action, context)
             }),
         }
     } satisfies CompanionActionDefinitions
 
-    return map
+    return actions
 }

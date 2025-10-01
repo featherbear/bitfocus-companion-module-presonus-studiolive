@@ -1,5 +1,5 @@
 
-import { DropdownChoice } from '@companion-module/base';
+import type { DropdownChoice } from '@companion-module/base';
 import type { ChannelCount } from 'presonus-studiolive-api';
 import { ValueSeparator } from './util/Constants';
 

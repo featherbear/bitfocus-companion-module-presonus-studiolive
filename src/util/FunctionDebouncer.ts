@@ -2,7 +2,7 @@ export class FunctionDebouncer {
     #delay: number
     #shouldExtendOnTouch: boolean
     #timeout: NodeJS.Timeout
-    #callback: Function
+    #callback: () => void
     
     /**
      * 
@@ -10,7 +10,7 @@ export class FunctionDebouncer {
      * @param extendOnTouch Should the timeout be extended on touch
      * @param newFunction Callback function to use when the debounce is complete
      */
-    constructor(delayMs: number, extendOnTouch?: boolean, newFunction?: Function) {
+    constructor(delayMs: number, extendOnTouch?: boolean, newFunction?: () => void) {
         this.#delay = delayMs
         this.#shouldExtendOnTouch = extendOnTouch
         this.#timeout = null
@@ -31,7 +31,7 @@ export class FunctionDebouncer {
      * Notify the debouncer of an event
      * @param newFunction New callback function to use when the debounce is complete
      */
-    touch(newFunction?: Function) {
+    touch(newFunction?: () => void) {
         if (this.#shouldExtendOnTouch) this.#clearTimeout()
         if (typeof newFunction === 'function') this.#callback = newFunction
         if (this.#shouldExtendOnTouch) this.#createTimeout()
