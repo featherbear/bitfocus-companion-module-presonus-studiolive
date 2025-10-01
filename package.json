@@ -2,30 +2,35 @@
   "name": "presonus-studiolive",
   "version": "1.2.2",
   "scripts": {
-    "build": "npm-run-all clean transpile",
-    "build:dist": "npm-run-all clean bundle",
-    "transpile": "tsc",
-    "bundle": "esbuild src/index.ts --platform=node --bundle --external:@companion-module/base --external:dtrace-provider --outdir=dist --minify",
-    "clean": "rimraf dist"
+    "build": "npm-run-all lint clean transpile",
+    "transpile": "swc src -d dist --strip-leading-paths --config-file .swcrc --quiet",
+    "clean": "rimraf dist pkg",
+    "lint": "eslint src/**/*.ts",
+    "lint:fix": "eslint --fix src/**/*.ts",
+    "package:dev": "companion-module-build --dev",
+    "package": "companion-module-build --dev"
   },
   "keywords": [
     "presonus",
     "studiolive"
   ],
   "main": "dist/index.js",
-  "repository": "git@github.com:featherbear/bitfocus-companion-module-presonus-studiolive-iii.git",
+  "repository": "git@github.com:featherbear/bitfocus-companion-module-presonus-studiolive.git",
   "author": "Andrew Wong <andrew.j.wong@outlook.com>",
   "license": "MIT",
   "dependencies": {
-    "@companion-module/base": "^1.4.1",
+    "@companion-module/base": "^1.13.2",
     "node-machine-id": "^1.1.12",
-    "presonus-studiolive-api": "featherbear/presonus-studiolive-api#24c376af774485ec2979c5cb87a104edd0a32c19",
-    "typescript": "^4.9"
+    "presonus-studiolive-api": "github:featherbear/presonus-studiolive-api#c82a780358db13ed52b3e2515b43b62fb0cb7a9c"
   },
   "devDependencies": {
-    "@companion-module/tools": "^1.3.2",
-    "esbuild": "^0.19.2",
+    "@companion-module/tools": "^2.4.1",
+    "@swc/cli": "^0.7.8",
+    "@swc/core": "^1.13.5",
+    "eslint": "^9.36.0",
     "npm-run-all": "^4.1.5",
-    "rimraf": "^3.0.2"
+    "rimraf": "^6.0.1",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.45.0"
   }
 }

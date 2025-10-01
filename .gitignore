@@ -1,6 +1,5 @@
 /dist/
-/node_modules/
-/yarn-error.log  
+/pkg/
+presonus-studiolive-*.tgz
+node_modules/
 .DS_Store
-/module-presonus-studiolive.zip
-/module-presonus-studiolive/
