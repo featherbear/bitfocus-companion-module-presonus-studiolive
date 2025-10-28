@@ -3,25 +3,20 @@ on: [push, workflow_dispatch]
 
 jobs:
   package:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       - name: Use Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '18.17.1'
+          node-version: '23.6.1'
       - name: Build
         run: |
           yarn install --frozen-lock-file
-          yarn build:dist
-          mkdir module-presonus-studiolive
-          cp -r companion dist module-presonus-studiolive/
-          mkdir -p module-presonus-studiolive/node_modules/@companion-module
-          cp -r node_modules/@companion-module/base module-presonus-studiolive/node_modules/@companion-module
-          zip -9 -r module-presonus-studiolive.zip module-presonus-studiolive/
-
-      - name: Upload
-        uses: actions/upload-artifact@v3
-        with:
-          name: module-presonus-studiolive.zip
-          path: module-presonus-studiolive.zip
+          yarn build
+          yarn package
+      # - name: Upload
+      #   uses: actions/upload-artifact@v3
+      #   with:
+      #     name: module-presonus-studiolive.zip
+      #     path: module-presonus-studiolive.zip

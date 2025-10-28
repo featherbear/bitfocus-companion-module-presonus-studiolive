@@ -1,32 +1,41 @@
 import type { CompanionActionDefinitions, DropdownChoice } from "@companion-module/base";
 import type Instance from "../";
-import { ValueSeparator } from "../util/Constants";
+import { MessageCode } from "presonus-studiolive-api";
 
 export default function generateActions_projectScenes(this: Instance, project_scenes: DropdownChoice[]) {
-    const key = 'project_scene'
-    return {
-        recallProjectOrScene: {
-            name: 'Recall Project / Scene',
-            description: 'Loads a project or project scene',
-            options: [
-                {
-                    label: 'Preset',
-                    type: 'dropdown',
-                    id: key,
-                    choices: project_scenes,
-                    default: ''
-                }
-            ],
-            callback: (action, context) => {
-                const [project, scene] = (<string>action.options[key]).split(ValueSeparator)
-                if (!project) return
+	const key = "project_scene";
+	return {
+		recallProjectOrScene: {
+			name: "Recall Project / Scene",
+			description: "Loads a project or project scene",
+			options: [
+				{
+					label: "Preset",
+					type: "dropdown",
+					id: key,
+					choices: project_scenes,
+					default: "",
+				},
+			],
+			callback: async (action, context) => {
+				if (!action.options[key]) return;
 
-                if (scene) {
-                    this.client.recallProjectScene(project, scene)
-                } else {
-                    this.client.recallProject(project)
-                }
-            }
-        }
-    } satisfies CompanionActionDefinitions
+				const [project, scene] = JSON.parse(<string>action.options[key]);
+				if (!project) return;
+
+				if (scene) {
+					this.client.recallProjectScene(project, scene);
+				} else {
+					this.client.recallProject(project);
+				}
+
+				await new Promise<void>((resolve) => {
+					this.client.once(MessageCode.ZLIB, () => {
+						this.checkAllFeedbacks();
+						resolve();
+					});
+				});
+			},
+		},
+	} satisfies CompanionActionDefinitions;
 }

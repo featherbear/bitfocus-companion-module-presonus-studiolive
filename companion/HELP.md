@@ -4,20 +4,6 @@
 - **StudioLive Console Port** - Port number (default: `53000`)
 - **Client name** - Client identifier
 
-### Available Actions
-
-- Mute
-- Unmute
-- Toggle Mute
-- Recall Project / Scene
-
-Mute actions can be configured as smooth 'fade to zero' / 'fade from zero' mutes
-
-### Available Feedbacks
-
-- Mute Status
-- Channel Colour
-
 ### Available Variables
 
 |Variable|Description|Example|

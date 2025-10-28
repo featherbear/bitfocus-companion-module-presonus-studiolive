@@ -1,6 +1,6 @@
 {
-  "name": "presonus-studiolive",
-  "version": "1.2.2",
+  "name": "bitfocus-presonus-studiolive",
+  "version": "1.4.0",
   "scripts": {
     "build": "npm-run-all lint clean transpile",
     "transpile": "swc src -d dist --strip-leading-paths --config-file .swcrc --quiet",
@@ -20,14 +20,15 @@
   "license": "MIT",
   "dependencies": {
     "@companion-module/base": "^1.13.2",
-    "node-machine-id": "^1.1.12",
-    "presonus-studiolive-api": "github:featherbear/presonus-studiolive-api#c82a780358db13ed52b3e2515b43b62fb0cb7a9c"
+    "nanoid": "^5.1.6",
+    "presonus-studiolive-api": "github:featherbear/presonus-studiolive-api#v1.7.2"
   },
   "devDependencies": {
     "@companion-module/tools": "^2.4.1",
     "@eslint/js": "^9.38.0",
     "@swc/cli": "^0.7.8",
     "@swc/core": "^1.13.5",
+    "@types/node": "^22.18.12",
     "eslint": "^9.38.0",
     "npm-run-all": "^4.1.5",
     "rimraf": "^6.0.1",

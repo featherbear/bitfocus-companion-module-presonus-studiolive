@@ -1,4 +1,5 @@
-import { CompanionFeedbackDefinition, CompanionFeedbackDefinitions, DropdownChoice, combineRgb } from '@companion-module/base';
+import type { CompanionFeedbackDefinition, CompanionFeedbackDefinitions, DropdownChoice } from '@companion-module/base';
+import { combineRgb } from '@companion-module/base';
 
 import type { ChannelSelector } from 'presonus-studiolive-api';
 import type Instance from './index';
@@ -51,7 +52,7 @@ export default function generateFeedback(this: Instance, channels: DropdownChoic
             ],
 
             callback: withChannelSelector((feedback, context, channel) => {
-                let colour: string = this.client.getColour(channel)
+                const colour: string = this.client.getColour(channel)
                 if (!colour) return {};
 
                 const [R, G, B] = Buffer.from(colour, 'hex')

@@ -2,7 +2,7 @@
 	"$schema": "https://raw.githubusercontent.com/bitfocus/companion-module-base/refs/heads/main/assets/manifest.schema.json",
     "manufacturer": "PreSonus",
     "shortname": "presonus-studiolive",
-    "description": "PreSonus StudioLive III integration for Bitfocus Companion",
+    "description": "PreSonus StudioLive Series III integration for Bitfocus Companion",
 	"id": "presonus-studiolive",
 	"name": "presonus-studiolive",
 	"version": "0.0.0",
@@ -22,6 +22,6 @@
 		"entrypoint": "../dist/index.js"
 	},
 	"legacyIds": [],
-	"products": ["StudioLive III"],
+	"products": ["StudioLive Series III"],
 	"keywords": []
 }

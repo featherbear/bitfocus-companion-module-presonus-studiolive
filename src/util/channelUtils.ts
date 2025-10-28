@@ -1,6 +1,5 @@
 import type { CompanionInputFieldDropdown, CompanionOptionValues, DropdownChoice } from "@companion-module/base";
 import type { ChannelCount, ChannelSelector, ChannelTypes } from "presonus-studiolive-api";
-import { ValueSeparator } from './Constants';
 
 export function generateChannelSelectOption(channels: DropdownChoice[], label = "Channel"): CompanionInputFieldDropdown {
     return {
@@ -24,7 +23,10 @@ export function generateMixSelectOption(mixes: DropdownChoice[], label = "Mix ta
 }
 
 export function extractChannelSelector(options: CompanionOptionValues) {
-    const [type, channel] = (<string>options.channel).split(ValueSeparator)
+    if (!options.channel) return
+    
+    // TODO: this could be a ChannelSelector deserialisation
+    const [type, channel] = JSON.parse(<string>options.channel)
     const selector: ChannelSelector = <any>{}
 
     if (!type || !channel) return
@@ -32,8 +34,8 @@ export function extractChannelSelector(options: CompanionOptionValues) {
     selector.type = <any>type
     selector.channel = <any>channel
 
-    if (!!options.mix) {
-        const [type, channel] = (<string>options.mix).split(ValueSeparator);
+    if (options.mix) {
+        const [type, channel] = JSON.parse(<string>options.mix);
         selector.mixType = <any>type;
         selector.mixNumber = <any>channel;
     }
@@ -48,9 +50,9 @@ export function extractChannelSelector(options: CompanionOptionValues) {
  * - Stylise "FX Return", and "FX"
  */
 function formatLabel(tokens: string[]) {
-    let builder = []
+    const builder = []
 
-    for (let tok of (tokens as ChannelTypes[])) {
+    for (const tok of (tokens as ChannelTypes[])) {
         let res: string = tok
 
         switch (tok) {
@@ -75,12 +77,12 @@ function formatLabel(tokens: string[]) {
 }
 
 export default function generateChannelSelectEntries(channels: ChannelCount): DropdownChoice[] {
-    let entries = Object.entries(channels).map(([name, count]) => {
-        let channels = []
+    const entries = Object.entries(channels).flatMap(([name, count]) => {
+        const channels = []
 
-        if (count == 1) {
+        if (count === 1) {
             channels.push({
-                id: [name, 1].join(ValueSeparator),
+                id: JSON.stringify([name, 1]),
                 label: formatLabel([name])
             })
             return channels
@@ -88,12 +90,12 @@ export default function generateChannelSelectEntries(channels: ChannelCount): Dr
 
         for (let i = 0; i < count; i++) {
             channels.push({
-                id: [name, i + 1].join(ValueSeparator),
+                id: JSON.stringify([name, i + 1]),
                 label: formatLabel([name, (i + 1).toString()])
             })
         }
         return channels
-    }).flat()
+    })
 
     return [
         { id: '', label: '' },

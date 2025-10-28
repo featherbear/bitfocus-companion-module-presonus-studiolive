@@ -1,10 +1,6 @@
-import { machineIdSync } from "node-machine-id";
-const mid = machineIdSync(true).replace(/-/g, "");
-
 import { MessageCode, Client as StudioLiveAPI } from "presonus-studiolive-api";
 import generateMixes from "./mixes";
 
-import { ValueSeparator } from "./util/Constants";
 import { FunctionDebouncer } from "./util/FunctionDebouncer";
 
 import type {
@@ -23,6 +19,9 @@ import generateActions_projectScenes from "./actions/projectScenes";
 import generateFeedback from "./feedbacks";
 import generatePreset from "./presets";
 import generateChannelSelectEntries from "./util/channelUtils";
+import { customAlphabet } from "nanoid/non-secure";
+
+const mid = customAlphabet("ABCDEFGH", 10);
 
 class Instance extends InstanceBase<ConfigType> {
 	client: StudioLiveAPI;
@@ -35,8 +34,12 @@ class Instance extends InstanceBase<ConfigType> {
 	}
 
 	checkFeedbacks(...feedbackTypes: (keyof ReturnType<typeof generateFeedback>)[]): void {
-		// TODO: add handler
 		super.checkFeedbacks(...feedbackTypes);
+	}
+
+	checkAllFeedbacks(): void {
+		this.checkFeedbacks("ChannelMute");
+		this.checkFeedbacks("ChannelColour");
 	}
 
 	async destroy() {
@@ -112,8 +115,8 @@ class Instance extends InstanceBase<ConfigType> {
 			console_serial: this.client.state.get("global.mixer_serial"),
 		});
 
-		let channels = generateChannelSelectEntries(this.client.channelCounts);
-		let mixes = generateMixes(this.client.channelCounts);
+		const channels = generateChannelSelectEntries(this.client.channelCounts);
+		const mixes = generateMixes(this.client.channelCounts);
 
 		const actions_channels = generateActions_channels.call(this, channels, mixes);
 		this.setActionDefinitions({ ...actions_channels });
@@ -121,20 +124,16 @@ class Instance extends InstanceBase<ConfigType> {
 		this.setFeedbackDefinitions(generateFeedback.call(this, channels, mixes));
 		this.setPresetDefinitions(generatePreset.call(this, channels, mixes));
 
-		this.checkFeedbacks("ChannelMute");
-		this.checkFeedbacks("ChannelColour");
+		this.checkAllFeedbacks();
 
 		if (this.consoleStateVariables.length > 0) {
 			this.intervals.push(
 				setInterval(() => {
 					this.setVariableValues(
-						this.consoleStateVariables.reduce(
-							(obj, variable) => ({
-								...obj,
-								[variable.variableId]: this.client.state.get(variable.resolver, variable.fallback),
-							}),
-							{},
-						),
+						this.consoleStateVariables.reduce((obj, variable) => {
+							obj[variable.variableId] = this.client.state.get(variable.resolver, variable.fallback);
+							return obj;
+						}, {}),
 					);
 				}, 1000),
 			);
@@ -167,8 +166,7 @@ class Instance extends InstanceBase<ConfigType> {
 				const actions_projectScenes = generateActions_projectScenes.call(this, [
 					{ id: "", label: "" },
 					...list.map((map) => ({
-						// TODO: Use a better sentinel that can't be used in the preset name
-						id: [map.projectName, map.sceneName].filter((v) => v).join(ValueSeparator),
+						id: JSON.stringify([map.projectName, map.sceneName].filter((v) => v)),
 						label: [map.projectTitle, map.sceneTitle].filter((v) => v).join(" - "),
 					})),
 				]);
@@ -202,7 +200,7 @@ class Instance extends InstanceBase<ConfigType> {
 		{
 			this.consoleStateVariables = [];
 
-			let consoleStateVariables = config.customVariables?.split(";");
+			const consoleStateVariables = config.customVariables?.split(";");
 			if (consoleStateVariables?.length > 0) {
 				consoleStateVariables.map((s) => {
 					const [key, value, fallback] = /^(.+?)=(.+?)(?:\|(.+?))?$/.exec(s)?.slice(1) ?? [];
