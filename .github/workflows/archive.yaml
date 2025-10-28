@@ -5,18 +5,20 @@ jobs:
   package:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Use Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: '23.6.1'
+          node-version: '22.21.0'
       - name: Build
         run: |
-          yarn install --frozen-lock-file
-          yarn build
-          yarn package
-      # - name: Upload
-      #   uses: actions/upload-artifact@v3
-      #   with:
-      #     name: module-presonus-studiolive.zip
-      #     path: module-presonus-studiolive.zip
+          npm install -g pnpm
+          pnpm install --frozen-lockfile
+          pnpm run build
+          pnpm run package
+
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: bitfocus-presonus-studiolive.tgz
+          path: bitfocus-presonus-studiolive-*.tgz

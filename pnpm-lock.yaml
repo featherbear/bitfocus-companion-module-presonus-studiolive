@@ -11,12 +11,12 @@ importers:
       '@companion-module/base':
         specifier: ^1.13.2
         version: 1.13.2
-      node-machine-id:
-        specifier: ^1.1.12
-        version: 1.1.12
+      nanoid:
+        specifier: ^5.1.6
+        version: 5.1.6
       presonus-studiolive-api:
-        specifier: github:featherbear/presonus-studiolive-api#c82a780358db13ed52b3e2515b43b62fb0cb7a9c
-        version: https://codeload.github.com/featherbear/presonus-studiolive-api/tar.gz/c82a780358db13ed52b3e2515b43b62fb0cb7a9c
+        specifier: github:featherbear/presonus-studiolive-api#c68244ef35ba2cc1605191ef330e030f3626ba66
+        version: https://codeload.github.com/featherbear/presonus-studiolive-api/tar.gz/c68244ef35ba2cc1605191ef330e030f3626ba66
     devDependencies:
       '@companion-module/tools':
         specifier: ^2.4.1
@@ -30,6 +30,9 @@ importers:
       '@swc/core':
         specifier: ^1.13.5
         version: 1.13.5
+      '@types/node':
+        specifier: ^22.18.12
+        version: 22.18.12
       eslint:
         specifier: ^9.38.0
         version: 9.38.0
@@ -400,8 +403,8 @@ packages:
   '@types/json-schema@7.0.15':
     resolution: {integrity: sha512-5+fP8P8MFNC+AyZCDxrB2pkZFPGzqQWUzpSeuuVLvm8VMcorNYavBqoFcxK8bQz4Qsbn4oUEEem4wDLfcysGHA==, tarball: https://packages.atlassian.com/api/npm/npm-remote/@types/json-schema/-/json-schema-7.0.15.tgz}
 
-  '@types/node@24.6.1':
-    resolution: {integrity: sha512-ljvjjs3DNXummeIaooB4cLBKg2U6SPI6Hjra/9rRIy7CpM0HpLtG9HptkMKAb4HYWy5S7HUvJEuWgr/y0U8SHw==, tarball: https://packages.atlassian.com/api/npm/npm-remote/@types/node/-/node-24.6.1.tgz}
+  '@types/node@22.18.12':
+    resolution: {integrity: sha512-BICHQ67iqxQGFSzfCFTT7MRQ5XcBjG5aeKh5Ok38UBbPe5fxTyE+aHFxwVrGyr8GNlqFMLKD1D3P2K/1ks8tog==, tarball: https://packages.atlassian.com/api/npm/npm-remote/@types/node/-/node-22.18.12.tgz}
 
   '@typescript-eslint/eslint-plugin@8.45.0':
     resolution: {integrity: sha512-HC3y9CVuevvWCl/oyZuI47dOeDF9ztdMEfMH8/DW/Mhwa9cCLnK1oD7JoTVGW/u7kFzNZUKUoyJEqkaJh5y3Wg==, tarball: https://packages.atlassian.com/api/npm/npm-remote/@typescript-eslint/eslint-plugin/-/eslint-plugin-8.45.0.tgz}
@@ -1601,6 +1604,11 @@ packages:
     engines: {node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1}
     hasBin: true
 
+  nanoid@5.1.6:
+    resolution: {integrity: sha512-c7+7RQ+dMB5dPwwCp4ee1/iV/q2P6aK1mTZcfr1BTuVlyW9hJYiMPybJCcnBlQtuSmTIWNeazm/zqNoZSSElBg==, tarball: https://packages.atlassian.com/api/npm/npm-remote/nanoid/-/nanoid-5.1.6.tgz}
+    engines: {node: ^18 || >=20}
+    hasBin: true
+
   natural-compare@1.4.0:
     resolution: {integrity: sha512-OWND8ei3VtNC9h7V60qff3SVobHr996CTwgxubgyQYEpg290h9J0buyECNNJexkFm5sOajh5G116RYA1c8ZMSw==, tarball: https://packages.atlassian.com/api/npm/npm-remote/natural-compare/-/natural-compare-1.4.0.tgz}
 
@@ -1613,9 +1621,6 @@ packages:
 
   nice-try@1.0.5:
     resolution: {integrity: sha512-1nh45deeb5olNY7eX82BkPO7SSxR5SSYJiPTrTdFUVYwAl8CKMA5N9PjTYkHiRjisVcxcQ1HXdLhx2qxxJzLNQ==, tarball: https://packages.atlassian.com/api/npm/npm-remote/nice-try/-/nice-try-1.0.5.tgz}
-
-  node-machine-id@1.1.12:
-    resolution: {integrity: sha512-QNABxbrPa3qEIfrE6GOJ7BYIuignnJw7iQ2YPbc3Nla1HzRJjXzZOiikfF8m7eAMfichLt3M4VgLOetqgDmgGQ==, tarball: https://packages.atlassian.com/api/npm/npm-remote/node-machine-id/-/node-machine-id-1.1.12.tgz}
 
   node-releases@2.0.21:
     resolution: {integrity: sha512-5b0pgg78U3hwXkCM8Z9b2FJdPZlr9Psr9V2gQPESdGHqbntyFJKFW4r5TeWGFzafGY3hzs1JC62VEQMbl1JFkw==, tarball: https://packages.atlassian.com/api/npm/npm-remote/node-releases/-/node-releases-2.0.21.tgz}
@@ -1795,9 +1800,9 @@ packages:
     resolution: {integrity: sha512-vkcDPrRZo1QZLbn5RLGPpg/WmIQ65qoWWhcGKf/b5eplkkarX0m9z8ppCat4mlOqUsWpyNuYgO3VRyrYHSzX5g==, tarball: https://packages.atlassian.com/api/npm/npm-remote/prelude-ls/-/prelude-ls-1.2.1.tgz}
     engines: {node: '>= 0.8.0'}
 
-  presonus-studiolive-api@https://codeload.github.com/featherbear/presonus-studiolive-api/tar.gz/c82a780358db13ed52b3e2515b43b62fb0cb7a9c:
-    resolution: {tarball: https://codeload.github.com/featherbear/presonus-studiolive-api/tar.gz/c82a780358db13ed52b3e2515b43b62fb0cb7a9c}
-    version: 1.7.0
+  presonus-studiolive-api@https://codeload.github.com/featherbear/presonus-studiolive-api/tar.gz/c68244ef35ba2cc1605191ef330e030f3626ba66:
+    resolution: {tarball: https://codeload.github.com/featherbear/presonus-studiolive-api/tar.gz/c68244ef35ba2cc1605191ef330e030f3626ba66}
+    version: 1.7.2
 
   prettier-linter-helpers@1.0.0:
     resolution: {integrity: sha512-GbK2cP9nraSSUF9N2XwUwqfzlAFlMNYYl+ShE/V+H8a9uNl/oUqB1w2EL54Jh0OlyRSd8RfWYJ3coVS4TROP2w==, tarball: https://packages.atlassian.com/api/npm/npm-remote/prettier-linter-helpers/-/prettier-linter-helpers-1.0.0.tgz}
@@ -2214,8 +2219,8 @@ packages:
   unbzip2-stream@1.4.3:
     resolution: {integrity: sha512-mlExGW4w71ebDJviH16lQLtZS32VKqsSfk80GCfUlwT/4/hNRFsoscrF/c++9xinkMzECL1uL9DDwXqFWkruPg==, tarball: https://packages.atlassian.com/api/npm/npm-remote/unbzip2-stream/-/unbzip2-stream-1.4.3.tgz}
 
-  undici-types@7.13.0:
-    resolution: {integrity: sha512-Ov2Rr9Sx+fRgagJ5AX0qvItZG/JKKoBRAVITs1zk7IqZGTJUwgUr7qoYBpWwakpWilTZFM98rG/AFRocu10iIQ==, tarball: https://packages.atlassian.com/api/npm/npm-remote/undici-types/-/undici-types-7.13.0.tgz}
+  undici-types@6.21.0:
+    resolution: {integrity: sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ==, tarball: https://packages.atlassian.com/api/npm/npm-remote/undici-types/-/undici-types-6.21.0.tgz}
 
   unicorn-magic@0.1.0:
     resolution: {integrity: sha512-lRfVq8fE8gz6QMBuDM6a+LO3IAzTi05H6gCVaUpir2E1Rwpo4ZUog45KpNXKC/Mn3Yb9UDuHumeFTo9iV/D9FQ==, tarball: https://packages.atlassian.com/api/npm/npm-remote/unicorn-magic/-/unicorn-magic-0.1.0.tgz}
@@ -2659,9 +2664,9 @@ snapshots:
 
   '@types/json-schema@7.0.15': {}
 
-  '@types/node@24.6.1':
+  '@types/node@22.18.12':
     dependencies:
-      undici-types: 7.13.0
+      undici-types: 6.21.0
 
   '@typescript-eslint/eslint-plugin@8.45.0(@typescript-eslint/parser@8.45.0(eslint@9.38.0)(typescript@5.9.3))(eslint@9.38.0)(typescript@5.9.3)':
     dependencies:
@@ -3881,7 +3886,7 @@ snapshots:
 
   jest-worker@27.5.1:
     dependencies:
-      '@types/node': 24.6.1
+      '@types/node': 22.18.12
       merge-stream: 2.0.0
       supports-color: 8.1.1
 
@@ -4009,6 +4014,8 @@ snapshots:
 
   nanoid@3.3.11: {}
 
+  nanoid@5.1.6: {}
+
   natural-compare@1.4.0: {}
 
   ncp@2.0.0:
@@ -4017,8 +4024,6 @@ snapshots:
   neo-async@2.6.2: {}
 
   nice-try@1.0.5: {}
-
-  node-machine-id@1.1.12: {}
 
   node-releases@2.0.21: {}
 
@@ -4186,10 +4191,20 @@ snapshots:
 
   prelude-ls@1.2.1: {}
 
-  presonus-studiolive-api@https://codeload.github.com/featherbear/presonus-studiolive-api/tar.gz/c82a780358db13ed52b3e2515b43b62fb0cb7a9c:
+  presonus-studiolive-api@https://codeload.github.com/featherbear/presonus-studiolive-api/tar.gz/c68244ef35ba2cc1605191ef330e030f3626ba66:
     dependencies:
+      '@swc/cli': 0.7.8(@swc/core@1.13.5)
+      '@swc/core': 1.13.5
       bunyan: 1.8.15
+      npm-run-all: 4.1.5
       queue: 6.0.2
+      rimraf: 6.0.1
+      typescript: 5.9.3
+    transitivePeerDependencies:
+      - '@swc/helpers'
+      - chokidar
+      - react-native-b4a
+      - supports-color
 
   prettier-linter-helpers@1.0.0:
     dependencies:
@@ -4665,7 +4680,7 @@ snapshots:
       buffer: 5.7.1
       through: 2.3.8
 
-  undici-types@7.13.0: {}
+  undici-types@6.21.0: {}
 
   unicorn-magic@0.1.0: {}
 

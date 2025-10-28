@@ -1,5 +1,5 @@
 /dist/
 /pkg/
-presonus-studiolive-*.tgz
+bitfocus-presonus-studiolive-*.tgz
 node_modules/
 .DS_Store

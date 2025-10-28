@@ -1,0 +1,6 @@
+ignoredBuiltDependencies:
+  - '@swc/core'
+  - dtrace-provider
+
+onlyBuiltDependencies:
+  - presonus-studiolive-api

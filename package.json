@@ -21,7 +21,7 @@
   "dependencies": {
     "@companion-module/base": "^1.13.2",
     "nanoid": "^5.1.6",
-    "presonus-studiolive-api": "github:featherbear/presonus-studiolive-api#v1.7.2"
+    "presonus-studiolive-api": "github:featherbear/presonus-studiolive-api#c68244ef35ba2cc1605191ef330e030f3626ba66"
   },
   "devDependencies": {
     "@companion-module/tools": "^2.4.1",
