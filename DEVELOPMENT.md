@@ -9,4 +9,4 @@ You can then point Companion to the parent directory, so that it can discover th
 
 ---
 
-* Run `pnpm build` to lint and build
+* Run `pnpm build` to lint and build (inc transpile)
