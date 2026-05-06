@@ -10,6 +10,12 @@ import {
     generateInputRoutingOption,
     getInputRoutingStateKey,
 } from './util/inputRouting';
+import {
+    PROJECT_FILTER_DEFINITIONS,
+    SCENE_FILTER_DEFINITIONS,
+    generateRecallFilterChoices,
+    generateRecallFilterStateChoices,
+} from './util/recallFilters';
 
 const withChannelSelector = function <T>(fn: (
     action: Parameters<CompanionFeedbackDefinition['callback']>[0],
@@ -26,13 +32,120 @@ const withChannelSelector = function <T>(fn: (
 }
 
 export type FeedbackDefinitions = ReturnType<typeof generateFeedback>
-export default function generateFeedback(this: Instance, channels: DropdownChoice[], mixes: DropdownChoice[]) {
+export default function generateFeedback(
+    this: Instance,
+    channels: DropdownChoice[],
+    mixes: DropdownChoice[],
+    projectScenes: DropdownChoice[] = [{ id: '', label: '' }],
+) {
     const channelSelectOptions = generateChannelSelectOption(channels)
     const lineChannelSelectOptions = generateChannelSelectOption(filterLineChannelChoices(channels))
     const mixSelectOptions = generateMixSelectOption(mixes, "Mix Source")
     const inputRoutingOptions = generateInputRoutingOption()
+    const projectSceneOptions = {
+        label: 'Preset',
+        type: 'dropdown' as const,
+        id: 'project_scene',
+        choices: projectScenes,
+        default: '',
+    }
+    const projectFilterOptions = {
+        label: 'Project filter',
+        type: 'dropdown' as const,
+        id: 'filter_key',
+        choices: generateRecallFilterChoices(PROJECT_FILTER_DEFINITIONS),
+        default: PROJECT_FILTER_DEFINITIONS[0]?.key ?? '',
+    }
+    const sceneFilterOptions = {
+        label: 'Scene filter',
+        type: 'dropdown' as const,
+        id: 'filter_key',
+        choices: generateRecallFilterChoices(SCENE_FILTER_DEFINITIONS),
+        default: SCENE_FILTER_DEFINITIONS[0]?.key ?? '',
+    }
+    const filterStateOptions = {
+        label: 'State',
+        type: 'dropdown' as const,
+        id: 'filter_state',
+        choices: generateRecallFilterStateChoices(),
+        default: 'on',
+    }
 
     return {
+        CurrentProjectOrScene: {
+            type: 'boolean',
+            name: 'Current project / scene',
+            description: 'Whether the selected project or scene is currently loaded',
+            defaultStyle: {
+                color: combineRgb(0, 0, 0),
+                bgcolor: combineRgb(255, 196, 0),
+            },
+            options: [
+                projectSceneOptions
+            ],
+            callback: (feedback) => {
+                if (!feedback.options.project_scene) return false
+
+                const [project, scene] = JSON.parse(<string>feedback.options.project_scene)
+                if (!project) return false
+
+                const currentProject = this.client.currentProject
+                const currentScene = this.client.currentScene
+
+                if (scene) {
+                    return currentProject === project && currentScene === scene
+                }
+
+                return currentProject === project
+            }
+        },
+
+        ProjectFilterStatus: {
+            type: 'boolean',
+            name: 'Project filter status',
+            description: 'Whether a project filter is currently on or off',
+            defaultStyle: {
+                color: combineRgb(0, 0, 0),
+                bgcolor: combineRgb(0, 180, 120),
+            },
+            options: [
+                projectFilterOptions,
+                filterStateOptions
+            ],
+            callback: (feedback) => {
+                const filter = PROJECT_FILTER_DEFINITIONS.find((filter) => filter.key === feedback.options.filter_key)
+                if (!filter) return false
+
+                const state = this.getRecallFilterState(filter)
+                if (state === null) return false
+
+                return state === (feedback.options.filter_state === 'on')
+            }
+        },
+
+        SceneFilterStatus: {
+            type: 'boolean',
+            name: 'Scene filter status',
+            description: 'Whether a scene filter is currently on or off',
+            defaultStyle: {
+                color: combineRgb(0, 0, 0),
+                bgcolor: combineRgb(0, 180, 120),
+            },
+            options: [
+                sceneFilterOptions,
+                filterStateOptions
+            ],
+            callback: (feedback) => {
+                const filter = SCENE_FILTER_DEFINITIONS.find((filter) => filter.key === feedback.options.filter_key)
+                if (!filter) return false
+
+                const state = this.getRecallFilterState(filter)
+                if (state === null) return false
+
+                return state === (feedback.options.filter_state === 'on')
+            }
+        },
+
         ChannelMute: {
             type: 'boolean',
             name: 'Mute status',

@@ -26,6 +26,7 @@ import {
 	getInputRoutingStateKey,
 	type InputRoutingMode,
 } from "./util/inputRouting";
+import type { RecallFilterDefinition } from "./util/recallFilters";
 import { customAlphabet } from "nanoid/non-secure";
 
 const mid = customAlphabet("ABCDEFGH", 10);
@@ -34,11 +35,20 @@ class Instance extends InstanceBase<ConfigType> {
 	client: StudioLiveAPI;
 	consoleStateVariables: Array<CompanionVariableDefinition & { resolver: string; fallback: any }>;
 	inputRoutingVariableDefinitions: CompanionVariableDefinition[];
+	projectSceneCache: Array<{
+		projectName: string;
+		projectTitle: string;
+		scenes: Array<{
+			sceneName: string;
+			sceneTitle: string;
+		}>;
+	}>;
 	intervals: NodeJS.Timeout[];
 
 	constructor(internal) {
 		super(internal);
 		this.inputRoutingVariableDefinitions = [];
+		this.projectSceneCache = [];
 		this.intervals = [];
 	}
 
@@ -47,6 +57,9 @@ class Instance extends InstanceBase<ConfigType> {
 	}
 
 	checkAllFeedbacks(): void {
+		this.checkFeedbacks("CurrentProjectOrScene");
+		this.checkFeedbacks("ProjectFilterStatus");
+		this.checkFeedbacks("SceneFilterStatus");
 		this.checkFeedbacks("ChannelMute");
 		this.checkFeedbacks("ChannelSelect");
 		this.checkFeedbacks("ChannelInputRouting");
@@ -57,6 +70,52 @@ class Instance extends InstanceBase<ConfigType> {
 		const buffer = Buffer.allocUnsafe(4);
 		buffer.writeFloatLE(value);
 		return buffer;
+	}
+
+	#getBooleanState(path: string): boolean | null {
+		const value = this.client.state.get(path);
+		if (Buffer.isBuffer(value)) {
+			return value.readFloatLE() >= 0.5;
+		}
+		if (typeof value === "number") {
+			return value >= 0.5;
+		}
+		if (typeof value === "boolean") {
+			return value;
+		}
+		return null;
+	}
+
+	setBooleanState(path: string, enabled: boolean): void {
+		const packetPath = path.replaceAll(".", "/");
+		(this.client as any)._sendPacket(
+			MessageCode.ParamValue,
+			Buffer.concat([Buffer.from(`${packetPath}\x00\x00\x00`), this.#toFloat(enabled ? 1 : 0)]),
+		);
+	}
+
+	getRecallFilterState(filter: RecallFilterDefinition): boolean | null {
+		return this.#getBooleanState(`${filter.group}.${filter.key}`);
+	}
+
+	setRecallFilterState(filter: RecallFilterDefinition, enabled: boolean): void {
+		this.setBooleanState(`${filter.group}.${filter.key}`, enabled);
+	}
+
+	getRecallFilterSnapshot(filters: RecallFilterDefinition[]): Record<string, boolean> {
+		return filters.reduce<Record<string, boolean>>((snapshot, filter) => {
+			const current = this.getRecallFilterState(filter);
+			if (current !== null) {
+				snapshot[`${filter.group}.${filter.key}`] = current;
+			}
+			return snapshot;
+		}, {});
+	}
+
+	restoreRecallFilterSnapshot(snapshot: Record<string, boolean>): void {
+		for (const [path, value] of Object.entries(snapshot)) {
+			this.setBooleanState(path, value);
+		}
 	}
 
 	#getSelectedChannelName(): string {
@@ -96,12 +155,45 @@ class Instance extends InstanceBase<ConfigType> {
 		);
 	}
 
+	#getAdjacentScene(direction: -1 | 1): { projectName: string; sceneName: string; sceneTitle: string } | null {
+		const currentProject = this.client?.currentProject;
+		const currentScene = this.client?.currentScene;
+		if (!currentProject || !currentScene) return null;
+
+		const project = this.projectSceneCache.find((project) => project.projectName === currentProject);
+		if (!project) return null;
+
+		const currentIndex = project.scenes.findIndex((scene) => scene.sceneName === currentScene);
+		if (currentIndex < 0) return null;
+
+		const adjacentScene = project.scenes[currentIndex + direction];
+		if (!adjacentScene) return null;
+
+		return {
+			projectName: project.projectName,
+			sceneName: adjacentScene.sceneName,
+			sceneTitle: adjacentScene.sceneTitle,
+		};
+	}
+
+	recallAdjacentScene(direction: -1 | 1): boolean {
+		const adjacentScene = this.#getAdjacentScene(direction);
+		if (!adjacentScene) return false;
+
+		this.client.recallProjectScene(adjacentScene.projectName, adjacentScene.sceneName);
+		return true;
+	}
+
 	#getConsoleVariableValues() {
+		const previousScene = this.#getAdjacentScene(-1);
+		const nextScene = this.#getAdjacentScene(1);
 		const values: Record<string, any> = {
 			console_model: this.client.state.get("global.mixer_name"),
 			console_version: this.client.state.get("global.mixer_version"),
 			console_serial: this.client.state.get("global.mixer_serial"),
 			console_sel_channel: this.#getSelectedChannelName(),
+			console_prev_scene: previousScene?.sceneTitle || previousScene?.sceneName || "",
+			console_next_scene: nextScene?.sceneTitle || nextScene?.sceneName || "",
 		};
 
 		for (const variable of this.consoleStateVariables) {
@@ -165,6 +257,8 @@ class Instance extends InstanceBase<ConfigType> {
 		 */
 		this.client.on(MessageCode.ParamValue, () => {
 			this.checkFeedbacks("ChannelMute");
+			this.checkFeedbacks("ProjectFilterStatus");
+			this.checkFeedbacks("SceneFilterStatus");
 		});
 
 		this.client.on(MessageCode.ParamChars, () => {
@@ -219,6 +313,14 @@ class Instance extends InstanceBase<ConfigType> {
 		{
 			const SceneDebouncer = new FunctionDebouncer(200, true, async () => {
 				const projects = await this.client.getProjects(true);
+				this.projectSceneCache = projects.map((project) => ({
+					projectName: project.name,
+					projectTitle: project.title,
+					scenes: project.scenes.map((scene) => ({
+						sceneName: scene.name,
+						sceneTitle: scene.title,
+					})),
+				}));
 				const list: {
 					projectName: string;
 					projectTitle: string;
@@ -244,11 +346,19 @@ class Instance extends InstanceBase<ConfigType> {
 						label: [map.projectTitle, map.sceneTitle].filter((v) => v).join(" - "),
 					})),
 				]);
+				const projectSceneChoices = [
+					{ id: "", label: "" },
+					...list.map((map) => ({
+						id: JSON.stringify([map.projectName, map.sceneName].filter((v) => v)),
+						label: [map.projectTitle, map.sceneTitle].filter((v) => v).join(" - "),
+					})),
+				];
 
 				this.setActionDefinitions({
 					...actions_channels,
 					...actions_projectScenes,
 				});
+				this.setFeedbackDefinitions(generateFeedback.call(this, channels, mixes, projectSceneChoices));
 			});
 
 			SceneDebouncer.touchImmediate();

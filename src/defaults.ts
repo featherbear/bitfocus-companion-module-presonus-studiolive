@@ -19,6 +19,14 @@ const consoleStateVariables: Array<CompanionVariableDefinition> = [
         variableId: 'console_sel_channel',
         name: "Console Selected Channel",
     },
+    {
+        variableId: 'console_prev_scene',
+        name: "Previous Scene",
+    },
+    {
+        variableId: 'console_next_scene',
+        name: "Next Scene",
+    },
 ]
 
 
