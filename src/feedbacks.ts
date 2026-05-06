@@ -1,7 +1,7 @@
 import type { CompanionFeedbackDefinition, CompanionFeedbackDefinitions, DropdownChoice } from '@companion-module/base';
 import { combineRgb } from '@companion-module/base';
 
-import type { ChannelSelector } from 'presonus-studiolive-api';
+import { parseChannelString, type ChannelSelector } from 'presonus-studiolive-api';
 import type Instance from './index';
 import { extractChannelSelector, generateChannelSelectOption, generateMixSelectOption } from './util/channelUtils';
 
@@ -40,6 +40,23 @@ export default function generateFeedback(this: Instance, channels: DropdownChoic
             callback: withChannelSelector((feedback, context, channel) => {
                 return !!this.client.getMute(channel)
 
+            })
+        },
+
+        ChannelSelect: {
+            type: 'boolean',
+            name: 'Select status',
+            description: 'Select status of a channel',
+            defaultStyle: {
+                color: combineRgb(0, 0, 0),
+                bgcolor: combineRgb(0, 255, 0),
+            },
+            options: [
+                channelSelectOptions
+            ],
+            callback: withChannelSelector((feedback, context, channel) => {
+                const channelPath = parseChannelString(channel).replaceAll('/', '.')
+                return !!this.client.state.get(`${channelPath}.select`)
             })
         },
 

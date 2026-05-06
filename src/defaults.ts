@@ -15,6 +15,10 @@ const consoleStateVariables: Array<CompanionVariableDefinition> = [
         variableId: 'console_serial',
         name: "Console Serial",
     },
+    {
+        variableId: 'console_sel_channel',
+        name: "Console Selected Channel",
+    },
 ]
 
 

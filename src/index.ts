@@ -39,7 +39,42 @@ class Instance extends InstanceBase<ConfigType> {
 
 	checkAllFeedbacks(): void {
 		this.checkFeedbacks("ChannelMute");
+		this.checkFeedbacks("ChannelSelect");
 		this.checkFeedbacks("ChannelColour");
+	}
+
+	#getSelectedChannelName(): string {
+		const lineCount = this.client?.channelCounts?.LINE ?? 0;
+		if (lineCount <= 0) return "";
+
+		for (let i = 1; i <= lineCount; i++) {
+			const channelPrefix = `line.ch${i}`;
+			if (!this.client.state.get(`${channelPrefix}.select`)) continue;
+
+			return (
+				this.client.state.get(`${channelPrefix}.username`) ||
+				this.client.state.get(`${channelPrefix}.name`) ||
+				this.client.state.get(`${channelPrefix}.chnum`) ||
+				""
+			);
+		}
+
+		return "";
+	}
+
+	#getConsoleVariableValues() {
+		const values: Record<string, any> = {
+			console_model: this.client.state.get("global.mixer_name"),
+			console_version: this.client.state.get("global.mixer_version"),
+			console_serial: this.client.state.get("global.mixer_serial"),
+			console_sel_channel: this.#getSelectedChannelName(),
+		};
+
+		for (const variable of this.consoleStateVariables) {
+			values[variable.variableId] = this.client.state.get(variable.resolver, variable.fallback);
+		}
+
+		return values;
 	}
 
 	async destroy() {
@@ -97,6 +132,10 @@ class Instance extends InstanceBase<ConfigType> {
 			this.checkFeedbacks("ChannelColour");
 		});
 
+		this.client.on(MessageCode.ZLIB, () => {
+			this.checkFeedbacks("ChannelSelect");
+		});
+
 		/**
 		 * Connect
 		 */
@@ -109,11 +148,7 @@ class Instance extends InstanceBase<ConfigType> {
 		/**
 		 * Update Companion with console states
 		 */
-		this.setVariableValues({
-			console_model: this.client.state.get("global.mixer_name"),
-			console_version: this.client.state.get("global.mixer_version"),
-			console_serial: this.client.state.get("global.mixer_serial"),
-		});
+		this.setVariableValues(this.#getConsoleVariableValues());
 
 		const channels = generateChannelSelectEntries(this.client.channelCounts);
 		const mixes = generateMixes(this.client.channelCounts);
@@ -126,18 +161,11 @@ class Instance extends InstanceBase<ConfigType> {
 
 		this.checkAllFeedbacks();
 
-		if (this.consoleStateVariables.length > 0) {
-			this.intervals.push(
-				setInterval(() => {
-					this.setVariableValues(
-						this.consoleStateVariables.reduce((obj, variable) => {
-							obj[variable.variableId] = this.client.state.get(variable.resolver, variable.fallback);
-							return obj;
-						}, {}),
-					);
-				}, 1000),
-			);
-		}
+		this.intervals.push(
+			setInterval(() => {
+				this.setVariableValues(this.#getConsoleVariableValues());
+			}, 1000),
+		);
 
 		/**
 		 * Initialise scene debouncer
