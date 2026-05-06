@@ -11,3 +11,7 @@
 3. Select [Import module package] and point to the downloaded `tgz` file
 4. Go to the [Connections] page and add a connection for `PreSonus: StudioLive Series III`
 5. Configure the `StudioLive Console IP` and press [Save]
+
+## Notes
+
+Current builds pin `presonus-studiolive-api` to an upstream UBJSON parsing fix so the module can connect to consoles that send `int16` (`I`) values during initial state sync.
