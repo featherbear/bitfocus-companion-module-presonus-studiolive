@@ -1,4 +1,4 @@
-import { MessageCode, Client as StudioLiveAPI } from "presonus-studiolive-api";
+import { MessageCode, Client as StudioLiveAPI, type ChannelSelector } from "presonus-studiolive-api";
 import generateMixes from "./mixes";
 
 import { FunctionDebouncer } from "./util/FunctionDebouncer";
@@ -19,6 +19,13 @@ import generateActions_projectScenes from "./actions/projectScenes";
 import generateFeedback from "./feedbacks";
 import generatePreset from "./presets";
 import generateChannelSelectEntries from "./util/channelUtils";
+import {
+	decodeInputRoutingMode,
+	encodeInputRoutingMode,
+	generateInputRoutingVariableDefinitions,
+	getInputRoutingStateKey,
+	type InputRoutingMode,
+} from "./util/inputRouting";
 import { customAlphabet } from "nanoid/non-secure";
 
 const mid = customAlphabet("ABCDEFGH", 10);
@@ -26,10 +33,12 @@ const mid = customAlphabet("ABCDEFGH", 10);
 class Instance extends InstanceBase<ConfigType> {
 	client: StudioLiveAPI;
 	consoleStateVariables: Array<CompanionVariableDefinition & { resolver: string; fallback: any }>;
+	inputRoutingVariableDefinitions: CompanionVariableDefinition[];
 	intervals: NodeJS.Timeout[];
 
 	constructor(internal) {
 		super(internal);
+		this.inputRoutingVariableDefinitions = [];
 		this.intervals = [];
 	}
 
@@ -40,7 +49,14 @@ class Instance extends InstanceBase<ConfigType> {
 	checkAllFeedbacks(): void {
 		this.checkFeedbacks("ChannelMute");
 		this.checkFeedbacks("ChannelSelect");
+		this.checkFeedbacks("ChannelInputRouting");
 		this.checkFeedbacks("ChannelColour");
+	}
+
+	#toFloat(value: number): Buffer {
+		const buffer = Buffer.allocUnsafe(4);
+		buffer.writeFloatLE(value);
+		return buffer;
 	}
 
 	#getSelectedChannelName(): string {
@@ -62,6 +78,24 @@ class Instance extends InstanceBase<ConfigType> {
 		return "";
 	}
 
+	#getInputRoutingMode(channel: ChannelSelector): InputRoutingMode | null {
+		const stateKey = getInputRoutingStateKey(channel);
+		if (!stateKey) return null;
+
+		return decodeInputRoutingMode(this.client.state.get(stateKey));
+	}
+
+	setInputRoutingMode(channel: ChannelSelector, mode: InputRoutingMode): void {
+		const stateKey = getInputRoutingStateKey(channel);
+		if (!stateKey) return;
+
+		const packetPath = stateKey.replaceAll(".", "/");
+		(this.client as any)._sendPacket(
+			MessageCode.ParamValue,
+			Buffer.concat([Buffer.from(`${packetPath}\x00\x00\x00`), this.#toFloat(encodeInputRoutingMode(mode))]),
+		);
+	}
+
 	#getConsoleVariableValues() {
 		const values: Record<string, any> = {
 			console_model: this.client.state.get("global.mixer_name"),
@@ -72,6 +106,11 @@ class Instance extends InstanceBase<ConfigType> {
 
 		for (const variable of this.consoleStateVariables) {
 			values[variable.variableId] = this.client.state.get(variable.resolver, variable.fallback);
+		}
+
+		const lineCount = this.client?.channelCounts?.LINE ?? 0;
+		for (let i = 1; i <= lineCount; i++) {
+			values[`console_ch${i}_inputsrc`] = this.#getInputRoutingMode({ type: "LINE", channel: i } as ChannelSelector) ?? "";
 		}
 
 		return values;
@@ -134,6 +173,7 @@ class Instance extends InstanceBase<ConfigType> {
 
 		this.client.on(MessageCode.ZLIB, () => {
 			this.checkFeedbacks("ChannelSelect");
+			this.checkFeedbacks("ChannelInputRouting");
 		});
 
 		/**
@@ -152,6 +192,12 @@ class Instance extends InstanceBase<ConfigType> {
 
 		const channels = generateChannelSelectEntries(this.client.channelCounts);
 		const mixes = generateMixes(this.client.channelCounts);
+		this.inputRoutingVariableDefinitions = generateInputRoutingVariableDefinitions(this.client.channelCounts.LINE ?? 0);
+		this.setVariableDefinitions([
+			...DEFAULTS.consoleStateVariables,
+			...this.inputRoutingVariableDefinitions,
+			...this.consoleStateVariables,
+		]);
 
 		const actions_channels = generateActions_channels.call(this, channels, mixes);
 		this.setActionDefinitions({ ...actions_channels });
@@ -227,6 +273,7 @@ class Instance extends InstanceBase<ConfigType> {
 		 */
 		{
 			this.consoleStateVariables = [];
+			this.inputRoutingVariableDefinitions = [];
 
 			const consoleStateVariables = config.customVariables?.split(";");
 			if (consoleStateVariables?.length > 0) {
@@ -242,7 +289,11 @@ class Instance extends InstanceBase<ConfigType> {
 				});
 			}
 
-			this.setVariableDefinitions([...DEFAULTS.consoleStateVariables, ...this.consoleStateVariables]);
+			this.setVariableDefinitions([
+				...DEFAULTS.consoleStateVariables,
+				...this.inputRoutingVariableDefinitions,
+				...this.consoleStateVariables,
+			]);
 		}
 
 		try {

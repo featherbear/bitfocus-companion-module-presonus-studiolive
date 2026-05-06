@@ -4,6 +4,7 @@ import type { ChannelSelector } from "presonus-studiolive-api"
 import type Instance from ".."
 import { generateTransitionPeriodOption } from "../util/actionsUtils"
 import { extractChannelSelector, generateChannelSelectOption, generateMixSelectOption } from "../util/channelUtils"
+import { filterLineChannelChoices, generateInputRoutingOption, type InputRoutingMode } from "../util/inputRouting"
 
 const withChannelSelector = function (fn: (
     action: Parameters<CompanionActionDefinition['callback']>[0],
@@ -22,7 +23,9 @@ const withChannelSelector = function (fn: (
 export type GeneratedChannelActions = ReturnType<typeof generateActions_channels>
 export default function generateActions_channels(this: Instance, channels: DropdownChoice[], mixes: DropdownChoice[]) {
     const channelSelectOptions = generateChannelSelectOption(channels)
+    const lineChannelSelectOptions = generateChannelSelectOption(filterLineChannelChoices(channels))
     const mixSelectOptions = generateMixSelectOption(mixes, "Mix Target")
+    const inputRoutingOptions = generateInputRoutingOption()
 
     const actions = {
         mute: {
@@ -95,6 +98,16 @@ export default function generateActions_channels(this: Instance, channels: Dropd
             ], callback: withChannelSelector((action, context, channel) => {
                 const fn = this.client.getMute(channel) ? actions.unmute_smooth : actions.mute_smooth
                 fn.callback(action, context)
+            }),
+        },
+        setInputRouting: {
+            name: 'Set input routing mode',
+            options: [
+                lineChannelSelectOptions,
+                inputRoutingOptions
+            ],
+            callback: withChannelSelector((action, context, channel) => {
+                this.setInputRoutingMode(channel, <InputRoutingMode>action.options.inputsrc)
             }),
         }
     } satisfies CompanionActionDefinitions
