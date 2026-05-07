@@ -5,6 +5,11 @@ const LINK_CAPABLE_TYPES: ChannelTypes[] = ["LINE", "RETURN", "FXRETURN", "AUX",
 const PAN_CAPABLE_TYPES: ChannelTypes[] = ["LINE", "RETURN", "FXRETURN", "AUX", "MAIN"]
 const COLOUR_CAPABLE_TYPES: ChannelTypes[] = ["LINE", "RETURN", "FXRETURN", "AUX", "MAIN"]
 const ICON_CAPABLE_TYPES: ChannelTypes[] = ["LINE", "RETURN", "FXRETURN", "AUX", "MAIN", "DCA"]
+const GATE_CAPABLE_TYPES: ChannelTypes[] = ["LINE"]
+const EQ_CAPABLE_TYPES: ChannelTypes[] = ["LINE", "RETURN", "FXRETURN", "AUX", "MAIN"]
+const COMP_CAPABLE_TYPES: ChannelTypes[] = ["LINE", "RETURN", "FXRETURN", "AUX", "MAIN"]
+const LIMITER_CAPABLE_TYPES: ChannelTypes[] = ["LINE", "RETURN", "AUX", "MAIN"]
+const HPF_CAPABLE_TYPES: ChannelTypes[] = ["LINE", "AUX"]
 
 export function generateChannelSelectOption(channels: DropdownChoice[], label = "Channel"): CompanionInputFieldDropdown {
     return {
@@ -80,6 +85,26 @@ export function supportsChannelColour(type: ChannelTypes): boolean {
 
 export function supportsChannelIcon(type: ChannelTypes): boolean {
 	return ICON_CAPABLE_TYPES.includes(type)
+}
+
+export function supportsChannelGate(type: ChannelTypes): boolean {
+	return GATE_CAPABLE_TYPES.includes(type)
+}
+
+export function supportsChannelEq(type: ChannelTypes): boolean {
+	return EQ_CAPABLE_TYPES.includes(type)
+}
+
+export function supportsChannelComp(type: ChannelTypes): boolean {
+	return COMP_CAPABLE_TYPES.includes(type)
+}
+
+export function supportsChannelLimiter(type: ChannelTypes): boolean {
+	return LIMITER_CAPABLE_TYPES.includes(type)
+}
+
+export function supportsChannelHpf(type: ChannelTypes): boolean {
+	return HPF_CAPABLE_TYPES.includes(type)
 }
 
 export function getChannelStatePath(channel: ChannelSelector): string {

@@ -55,6 +55,50 @@ export function generatePanOption(id = "pan", label = "Pan / Width", defaultValu
 	}
 }
 
+export function generateHpfOption(id = "hpf", label = "HPF Frequency (Hz)", defaultValue = 120): CompanionInputFieldNumber {
+	return {
+		label,
+		type: "number",
+		id,
+		default: defaultValue,
+		min: 20,
+		max: 1000,
+		range: true,
+	}
+}
+
+export function generateDbLevelOption(
+	id = "db_level",
+	label = "Level (dB)",
+	defaultValue = 0,
+): CompanionInputFieldNumber {
+	return {
+		label,
+		type: "number",
+		id,
+		default: defaultValue,
+		min: -84,
+		max: 10,
+		range: true,
+	}
+}
+
+export function generateDbDeltaOption(
+	id = "db_delta",
+	label = "Level delta (dB)",
+	defaultValue = 3,
+): CompanionInputFieldNumber {
+	return {
+		label,
+		type: "number",
+		id,
+		default: defaultValue,
+		min: -94,
+		max: 94,
+		range: true,
+	}
+}
+
 export function generateComparatorOption(
 	id = "comparator",
 	label = "Comparator",

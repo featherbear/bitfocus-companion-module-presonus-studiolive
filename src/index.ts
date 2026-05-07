@@ -22,7 +22,12 @@ import generateChannelSelectEntries, {
 	getChannelPacketPath,
 	getChannelStatePath,
 	supportsChannelColour,
+	supportsChannelComp,
+	supportsChannelEq,
+	supportsChannelGate,
+	supportsChannelHpf,
 	supportsChannelLink,
+	supportsChannelLimiter,
 	supportsChannelPan,
 } from "./util/channelUtils";
 import {
@@ -75,6 +80,10 @@ class Instance extends InstanceBase<ConfigType> {
 		this.checkFeedbacks("SceneFilterStatus");
 		this.checkFeedbacks("ChannelMute");
 		this.checkFeedbacks("ChannelSolo");
+		this.checkFeedbacks("ChannelGate");
+		this.checkFeedbacks("ChannelEq");
+		this.checkFeedbacks("ChannelComp");
+		this.checkFeedbacks("ChannelLimiter");
 		this.checkFeedbacks("ChannelSelect");
 		this.checkFeedbacks("ChannelInputRouting");
 		this.checkFeedbacks("ChannelColour");
@@ -125,6 +134,60 @@ class Instance extends InstanceBase<ConfigType> {
 	normaliseLevelValue(value: number | null): number | null {
 		if (value === null || Number.isNaN(value)) return null;
 		return value <= 1 ? value * 100 : value;
+	}
+
+	dbToLinearLevel(db: number): number {
+		const clamped = Math.max(-84, Math.min(10, db));
+		if (clamped <= -84) return 0;
+		if (clamped >= 10) return 100;
+
+		return Math.max(
+			0,
+			Math.min(
+				100,
+				Math.trunc(72.5204177782 + 2.473473992 * clamped + 0.026567557 * clamped ** 2 + 0.0000880866 * clamped ** 3),
+			),
+		);
+	}
+
+	linearLevelToDb(level: number | null): number | null {
+		if (level === null || Number.isNaN(level)) return null;
+		const clamped = Math.max(0, Math.min(100, level));
+		if (clamped <= 0) return -84;
+		if (clamped >= 100) return 10;
+
+		let bestDb = -84;
+		let bestDiff = Infinity;
+
+		for (let db = -84; db <= 10; db += 0.1) {
+			const candidate = this.dbToLinearLevel(db);
+			const diff = Math.abs(candidate - clamped);
+			if (diff < bestDiff) {
+				bestDiff = diff;
+				bestDb = db;
+			}
+		}
+
+		return Math.round(bestDb * 10) / 10;
+	}
+
+	encodeHpfFrequency(hz: number): number {
+		if (hz <= 20) return 0;
+
+		const minHz = 24;
+		const maxHz = 1000;
+		const clamped = Math.max(minHz, Math.min(maxHz, hz));
+		return Math.log(clamped / minHz) / Math.log(maxHz / minHz);
+	}
+
+	decodeHpfFrequency(value: number | null): string {
+		if (value === null || Number.isNaN(value) || value <= 0) return "Off";
+
+		const minHz = 24;
+		const maxHz = 1000;
+		const normalized = Math.max(0, Math.min(1, value));
+		const hz = minHz * Math.pow(maxHz / minHz, normalized);
+		return `${Math.round(hz)}`;
 	}
 
 	setBooleanState(path: string, enabled: boolean): void {
@@ -210,6 +273,31 @@ class Instance extends InstanceBase<ConfigType> {
 		}
 
 		return "";
+	}
+
+	getChannelGateState(selector: ChannelSelector): boolean | null {
+		if (!supportsChannelGate(selector.type as typeof selector.type)) return null;
+		return this.getBooleanState(`${getChannelStatePath(selector)}.gate.on`);
+	}
+
+	getChannelEqState(selector: ChannelSelector): boolean | null {
+		if (!supportsChannelEq(selector.type as typeof selector.type)) return null;
+		return this.getBooleanState(`${getChannelStatePath(selector)}.eq.eqallon`);
+	}
+
+	getChannelCompState(selector: ChannelSelector): boolean | null {
+		if (!supportsChannelComp(selector.type as typeof selector.type)) return null;
+		return this.getBooleanState(`${getChannelStatePath(selector)}.comp.on`);
+	}
+
+	getChannelLimiterState(selector: ChannelSelector): boolean | null {
+		if (!supportsChannelLimiter(selector.type as typeof selector.type)) return null;
+		return this.getBooleanState(`${getChannelStatePath(selector)}.limit.limiteron`);
+	}
+
+	getChannelHpfValue(selector: ChannelSelector): string {
+		if (!supportsChannelHpf(selector.type as typeof selector.type)) return "";
+		return this.decodeHpfFrequency(this.getNumericState(`${getChannelStatePath(selector)}.filter.hpf`));
 	}
 
 	setChannelLevel(selector: ChannelSelector, targetLevel: number, duration = 0): Promise<null> {
@@ -387,6 +475,21 @@ class Instance extends InstanceBase<ConfigType> {
 				{ variableId: `console_${base}_level`, name: `${base} Level` },
 			];
 
+			if (supportsChannelGate(selector.type as typeof selector.type)) {
+				variables.push({ variableId: `console_${base}_gate`, name: `${base} Gate` });
+			}
+			if (supportsChannelEq(selector.type as typeof selector.type)) {
+				variables.push({ variableId: `console_${base}_eq`, name: `${base} EQ` });
+			}
+			if (supportsChannelComp(selector.type as typeof selector.type)) {
+				variables.push({ variableId: `console_${base}_comp`, name: `${base} Compressor` });
+			}
+			if (supportsChannelLimiter(selector.type as typeof selector.type)) {
+				variables.push({ variableId: `console_${base}_limiter`, name: `${base} Limiter` });
+			}
+			if (supportsChannelHpf(selector.type as typeof selector.type)) {
+				variables.push({ variableId: `console_${base}_hpf`, name: `${base} HPF (Hz)` });
+			}
 			if (supportsChannelPan(selector.type as typeof selector.type)) {
 				variables.push({ variableId: `console_${base}_pan`, name: `${base} Pan` });
 			}
@@ -473,6 +576,21 @@ class Instance extends InstanceBase<ConfigType> {
 			values[`console_${base}_mute`] = this.client.getMute(selector) ?? "";
 			values[`console_${base}_solo`] = this.client.getSolo(selector) ?? "";
 			values[`console_${base}_level`] = this.getChannelLevel(selector) ?? "";
+			if (supportsChannelGate(selector.type as typeof selector.type)) {
+				values[`console_${base}_gate`] = this.getChannelGateState(selector) ?? "";
+			}
+			if (supportsChannelEq(selector.type as typeof selector.type)) {
+				values[`console_${base}_eq`] = this.getChannelEqState(selector) ?? "";
+			}
+			if (supportsChannelComp(selector.type as typeof selector.type)) {
+				values[`console_${base}_comp`] = this.getChannelCompState(selector) ?? "";
+			}
+			if (supportsChannelLimiter(selector.type as typeof selector.type)) {
+				values[`console_${base}_limiter`] = this.getChannelLimiterState(selector) ?? "";
+			}
+			if (supportsChannelHpf(selector.type as typeof selector.type)) {
+				values[`console_${base}_hpf`] = this.getChannelHpfValue(selector);
+			}
 			if (supportsChannelPan(selector.type as typeof selector.type)) {
 				values[`console_${base}_pan`] = this.getChannelPan(selector) ?? "";
 			}
@@ -559,6 +677,10 @@ class Instance extends InstanceBase<ConfigType> {
 		this.client.on(MessageCode.ParamValue, () => {
 			this.checkFeedbacks("ChannelMute");
 			this.checkFeedbacks("ChannelSolo");
+			this.checkFeedbacks("ChannelGate");
+			this.checkFeedbacks("ChannelEq");
+			this.checkFeedbacks("ChannelComp");
+			this.checkFeedbacks("ChannelLimiter");
 			this.checkFeedbacks("ChannelLink");
 			this.checkFeedbacks("ChannelLevel");
 			this.checkFeedbacks("ChannelPan");

@@ -1,9 +1,10 @@
 
 import type { CompanionActionDefinition, CompanionActionDefinitions, CompanionInputFieldColor, DropdownChoice } from "@companion-module/base"
 import { combineRgb } from "@companion-module/base"
-import type { ChannelSelector } from "presonus-studiolive-api"
+import { MessageCode, type ChannelSelector } from "presonus-studiolive-api"
 import type Instance from ".."
 import {
+	generateHpfOption,
 	generateLinearLevelOption,
 	generateOnOffToggleOption,
 	generatePanOption,
@@ -36,6 +37,18 @@ const withChannelSelector = function (fn: (
     }) satisfies CompanionActionDefinition['callback']
 }
 
+async function resolveNumericOption(
+	context: Parameters<CompanionActionDefinition['callback']>[1],
+	rawValue: unknown,
+	useVariables: boolean,
+): Promise<number | null> {
+	if (rawValue === undefined || rawValue === null || rawValue === "") return null
+
+	const resolved = useVariables ? await context.parseVariablesInString(String(rawValue)) : String(rawValue)
+	const value = Number(resolved)
+	return Number.isFinite(value) ? value : null
+}
+
 export type GeneratedChannelActions = ReturnType<typeof generateActions_channels>
 export default function generateActions_channels(
 	this: Instance,
@@ -45,11 +58,23 @@ export default function generateActions_channels(
 ) {
     const channelSelectOptions = generateChannelSelectOption(channels)
     const lineChannelSelectOptions = generateChannelSelectOption(filterLineChannelChoices(channels))
-    const panChannelSelectOptions = generateChannelSelectOption(
+	const panChannelSelectOptions = generateChannelSelectOption(
 		filterChannelChoicesByTypes(channels, ["LINE", "RETURN", "FXRETURN", "AUX", "MAIN"]),
+	)
+	const gateChannelSelectOptions = generateChannelSelectOption(
+		filterChannelChoicesByTypes(channels, ["LINE"]),
+	)
+	const hpfChannelSelectOptions = generateChannelSelectOption(
+		filterChannelChoicesByTypes(channels, ["LINE", "AUX"]),
 	)
     const linkChannelSelectOptions = generateChannelSelectOption(
 		filterChannelChoicesByTypes(channels, ["LINE", "RETURN", "FXRETURN", "AUX", "MAIN"]),
+	)
+	const eqCompChannelSelectOptions = generateChannelSelectOption(
+		filterChannelChoicesByTypes(channels, ["LINE", "RETURN", "FXRETURN", "AUX", "MAIN"]),
+	)
+	const limiterChannelSelectOptions = generateChannelSelectOption(
+		filterChannelChoicesByTypes(channels, ["LINE", "RETURN", "AUX", "MAIN"]),
 	)
     const colourChannelSelectOptions = generateChannelSelectOption(
 		channels.filter((channel) => {
@@ -81,6 +106,18 @@ export default function generateActions_channels(
 		id: "color",
 		default: combineRgb(255, 0, 0),
 		returnType: "number",
+	}
+	const usePercentageOption = {
+		type: "checkbox" as const,
+		id: "use_percentage",
+		label: "Use Percentage",
+		default: false,
+	}
+	const useVariablesOption = {
+		type: "checkbox" as const,
+		id: "level_use_variables",
+		label: "Use Variables for Level / Adjust (dB / %)",
+		default: false,
 	}
     const channelPresetOptions = {
 		label: "Channel preset",
@@ -163,30 +200,153 @@ export default function generateActions_channels(
                 fn.callback(action, context)
             }),
         },
-        setInputRouting: {
+		setInputRouting: {
             name: 'Set input routing mode',
             options: [
                 lineChannelSelectOptions,
                 inputRoutingOptions
             ],
-            callback: withChannelSelector((action, context, channel) => {
+			callback: withChannelSelector((action, context, channel) => {
                 this.setInputRoutingMode(channel, <InputRoutingMode>action.options.inputsrc)
             }),
         },
+		setGate: {
+			name: "Set Gate",
+			options: [
+				gateChannelSelectOptions,
+				generateOnOffToggleOption("state", "Gate", true, "toggle"),
+			],
+			callback: withChannelSelector((action, context, channel) => {
+				const path = `${getChannelStatePath(channel)}.gate.on`
+				if (action.options.state === "toggle") {
+					const current = this.getBooleanState(path)
+					if (current === null) return
+					this.setBooleanState(path, !current)
+					return
+				}
+
+				this.setBooleanState(path, action.options.state === "on")
+			}),
+		},
+		setEq: {
+			name: "Set EQ",
+			options: [
+				eqCompChannelSelectOptions,
+				generateOnOffToggleOption("state", "EQ", true, "toggle"),
+			],
+			callback: withChannelSelector((action, context, channel) => {
+				const path = `${getChannelStatePath(channel)}.eq.eqallon`
+				if (action.options.state === "toggle") {
+					const current = this.getBooleanState(path)
+					if (current === null) return
+					this.setBooleanState(path, !current)
+					return
+				}
+
+				this.setBooleanState(path, action.options.state === "on")
+			}),
+		},
+		setComp: {
+			name: "Set Compressor",
+			options: [
+				eqCompChannelSelectOptions,
+				generateOnOffToggleOption("state", "Compressor", true, "toggle"),
+			],
+			callback: withChannelSelector((action, context, channel) => {
+				const path = `${getChannelStatePath(channel)}.comp.on`
+				if (action.options.state === "toggle") {
+					const current = this.getBooleanState(path)
+					if (current === null) return
+					this.setBooleanState(path, !current)
+					return
+				}
+
+				this.setBooleanState(path, action.options.state === "on")
+			}),
+		},
+		setLimiter: {
+			name: "Set Limiter",
+			options: [
+				limiterChannelSelectOptions,
+				generateOnOffToggleOption("state", "Limiter", true, "toggle"),
+			],
+			callback: withChannelSelector((action, context, channel) => {
+				const path = `${getChannelStatePath(channel)}.limit.limiteron`
+				if (action.options.state === "toggle") {
+					const current = this.getBooleanState(path)
+					if (current === null) return
+					this.setBooleanState(path, !current)
+					return
+				}
+
+				this.setBooleanState(path, action.options.state === "on")
+			}),
+		},
+		setHpf: {
+			name: "Set HPF",
+			options: [
+				hpfChannelSelectOptions,
+				generateHpfOption(),
+			],
+			callback: withChannelSelector((action, context, channel) => {
+				const normalized = this.encodeHpfFrequency(Number(action.options.hpf))
+				const value = Buffer.allocUnsafe(4)
+				value.writeFloatLE(normalized)
+				;(this.client as any)._sendPacket(
+					MessageCode.ParamValue,
+					Buffer.concat([
+						Buffer.from(`${getChannelStatePath(channel).replaceAll(".", "/")}/filter/hpf\x00\x00\x00`),
+						value,
+					]),
+				)
+			}),
+		},
 		setLevel: {
 			name: "Set Level",
 			options: [
 				channelSelectOptions,
 				mixSelectOptions,
-				generateLinearLevelOption(),
+				usePercentageOption,
+				useVariablesOption,
+				{
+					...generateLinearLevelOption("level", "Level (%)", 72),
+					isVisibleExpression: '$(options:use_percentage) == true && $(options:level_use_variables) != true',
+				},
+				{
+					label: "Level (dB)",
+					type: "number",
+					id: "db_level",
+					default: 0,
+					min: -84,
+					max: 10,
+					range: true,
+					isVisibleExpression: '$(options:use_percentage) != true && $(options:level_use_variables) != true',
+				},
+				{
+					label: "Level / Adjust Variable",
+					type: "textinput",
+					id: "level_variables",
+					default: "",
+					useVariables: true,
+					isVisibleExpression: '$(options:level_use_variables) == true',
+				},
 				generateTransitionPeriodOption(0),
 			],
-			callback: withChannelSelector((action, context, channel) => {
-				return this.setChannelLevel(
-					channel,
-					Math.max(0, Math.min(100, Number(action.options.level))),
-					Number(action.options.transition),
-				)
+			callback: withChannelSelector(async (action, context, channel) => {
+				const useVariables = action.options.level_use_variables === true
+				const rawValue = useVariables
+					? action.options.level_variables
+					: action.options.use_percentage === true
+						? action.options.level
+						: action.options.db_level
+				const resolved = await resolveNumericOption(context, rawValue, useVariables)
+				if (resolved === null) return
+
+				const targetLevel = action.options.use_percentage === true
+					? Math.max(0, Math.min(100, resolved))
+					: this.dbToLinearLevel(resolved)
+
+				return this.setChannelLevel(channel, targetLevel, Number(action.options.transition))
 			}),
 		},
 		adjustLevel: {
@@ -194,13 +354,54 @@ export default function generateActions_channels(
 			options: [
 				channelSelectOptions,
 				mixSelectOptions,
-				generateSignedLevelDeltaOption(),
+				usePercentageOption,
+				{
+					...useVariablesOption,
+					id: "delta_use_variables",
+				},
+				{
+					...generateSignedLevelDeltaOption("delta", "Adjust (%)", 5),
+					isVisibleExpression: '$(options:use_percentage) == true && $(options:delta_use_variables) != true',
+				},
+				{
+					label: "Adjust (dB)",
+					type: "number",
+					id: "db_delta",
+					default: 3,
+					min: -94,
+					max: 94,
+					range: true,
+					isVisibleExpression: '$(options:use_percentage) != true && $(options:delta_use_variables) != true',
+				},
+				{
+					label: "Level / Adjust Variable",
+					type: "textinput",
+					id: "delta_variables",
+					default: "",
+					useVariables: true,
+					isVisibleExpression: '$(options:delta_use_variables) == true',
+				},
 				generateTransitionPeriodOption(0),
 			],
-			callback: withChannelSelector((action, context, channel) => {
-				const currentLevel = this.getChannelLevel(channel) ?? 0
-				const targetLevel = Math.max(0, Math.min(100, currentLevel + Number(action.options.delta)))
-				return this.setChannelLevel(channel, targetLevel, Number(action.options.transition))
+			callback: withChannelSelector(async (action, context, channel) => {
+				const useVariables = action.options.delta_use_variables === true
+				const rawValue = useVariables
+					? action.options.delta_variables
+					: action.options.use_percentage === true
+						? action.options.delta
+						: action.options.db_delta
+				const resolved = await resolveNumericOption(context, rawValue, useVariables)
+				if (resolved === null) return
+
+				if (action.options.use_percentage === true) {
+					const currentLevel = this.getChannelLevel(channel) ?? 0
+					const targetLevel = Math.max(0, Math.min(100, currentLevel + resolved))
+					return this.setChannelLevel(channel, targetLevel, Number(action.options.transition))
+				}
+
+				const currentDb = this.linearLevelToDb(this.getChannelLevel(channel)) ?? -84
+				const targetDb = Math.max(-84, Math.min(10, currentDb + resolved))
+				return this.setChannelLevel(channel, this.dbToLinearLevel(targetDb), Number(action.options.transition))
 			}),
 		},
 		setSolo: {

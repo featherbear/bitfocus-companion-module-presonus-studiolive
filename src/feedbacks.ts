@@ -50,6 +50,15 @@ export default function generateFeedback(
     const panChannelSelectOptions = generateChannelSelectOption(
         filterChannelChoicesByTypes(channels, ["LINE", "RETURN", "FXRETURN", "AUX", "MAIN"])
     )
+    const gateChannelSelectOptions = generateChannelSelectOption(
+        filterChannelChoicesByTypes(channels, ["LINE"])
+    )
+    const eqCompChannelSelectOptions = generateChannelSelectOption(
+        filterChannelChoicesByTypes(channels, ["LINE", "RETURN", "FXRETURN", "AUX", "MAIN"])
+    )
+    const limiterChannelSelectOptions = generateChannelSelectOption(
+        filterChannelChoicesByTypes(channels, ["LINE", "RETURN", "AUX", "MAIN"])
+    )
     const linkChannelSelectOptions = generateChannelSelectOption(
         filterChannelChoicesByTypes(channels, ["LINE", "RETURN", "FXRETURN", "AUX", "MAIN"])
     )
@@ -221,6 +230,82 @@ export default function generateFeedback(
                 const solo = this.client.getSolo(channel)
                 if (solo === null) return false
                 return solo === (feedback.options.state === 'on')
+            })
+        },
+
+        ChannelGate: {
+            type: 'boolean',
+            name: 'Gate status',
+            description: 'Gate on/off state of a channel',
+            defaultStyle: {
+                color: combineRgb(0, 0, 0),
+                bgcolor: combineRgb(180, 220, 255),
+            },
+            options: [
+                gateChannelSelectOptions,
+                generateOnOffToggleOption('state', 'Gate state', false, 'on'),
+            ],
+            callback: withChannelSelector((feedback, context, channel) => {
+                const state = this.getBooleanState(`${parseChannelString(channel).replaceAll('/', '.')}.gate.on`)
+                if (state === null) return false
+                return state === (feedback.options.state === 'on')
+            })
+        },
+
+        ChannelEq: {
+            type: 'boolean',
+            name: 'EQ status',
+            description: 'EQ on/off state of a channel',
+            defaultStyle: {
+                color: combineRgb(0, 0, 0),
+                bgcolor: combineRgb(255, 220, 120),
+            },
+            options: [
+                eqCompChannelSelectOptions,
+                generateOnOffToggleOption('state', 'EQ state', false, 'on'),
+            ],
+            callback: withChannelSelector((feedback, context, channel) => {
+                const state = this.getBooleanState(`${parseChannelString(channel).replaceAll('/', '.')}.eq.eqallon`)
+                if (state === null) return false
+                return state === (feedback.options.state === 'on')
+            })
+        },
+
+        ChannelComp: {
+            type: 'boolean',
+            name: 'Compressor status',
+            description: 'Compressor on/off state of a channel',
+            defaultStyle: {
+                color: combineRgb(0, 0, 0),
+                bgcolor: combineRgb(200, 255, 160),
+            },
+            options: [
+                eqCompChannelSelectOptions,
+                generateOnOffToggleOption('state', 'Compressor state', false, 'on'),
+            ],
+            callback: withChannelSelector((feedback, context, channel) => {
+                const state = this.getBooleanState(`${parseChannelString(channel).replaceAll('/', '.')}.comp.on`)
+                if (state === null) return false
+                return state === (feedback.options.state === 'on')
+            })
+        },
+
+        ChannelLimiter: {
+            type: 'boolean',
+            name: 'Limiter status',
+            description: 'Limiter on/off state of a channel',
+            defaultStyle: {
+                color: combineRgb(0, 0, 0),
+                bgcolor: combineRgb(255, 180, 180),
+            },
+            options: [
+                limiterChannelSelectOptions,
+                generateOnOffToggleOption('state', 'Limiter state', false, 'on'),
+            ],
+            callback: withChannelSelector((feedback, context, channel) => {
+                const state = this.getBooleanState(`${parseChannelString(channel).replaceAll('/', '.')}.limit.limiteron`)
+                if (state === null) return false
+                return state === (feedback.options.state === 'on')
             })
         },
 
