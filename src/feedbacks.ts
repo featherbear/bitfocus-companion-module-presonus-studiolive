@@ -3,7 +3,14 @@ import { combineRgb } from '@companion-module/base';
 
 import { parseChannelString, type ChannelSelector } from 'presonus-studiolive-api';
 import type Instance from './index';
-import { extractChannelSelector, generateChannelSelectOption, generateMixSelectOption } from './util/channelUtils';
+import { compareNumber, generateComparatorOption, generateLinearLevelOption, generateOnOffToggleOption, generatePanOption } from './util/actionsUtils';
+import {
+    extractChannelSelector,
+    filterChannelChoicesByTypes,
+    generateChannelSelectOption,
+    generateMixSelectOption,
+    supportsChannelColour,
+} from './util/channelUtils';
 import {
     decodeInputRoutingMode,
     filterLineChannelChoices,
@@ -40,6 +47,23 @@ export default function generateFeedback(
 ) {
     const channelSelectOptions = generateChannelSelectOption(channels)
     const lineChannelSelectOptions = generateChannelSelectOption(filterLineChannelChoices(channels))
+    const panChannelSelectOptions = generateChannelSelectOption(
+        filterChannelChoicesByTypes(channels, ["LINE", "RETURN", "FXRETURN", "AUX", "MAIN"])
+    )
+    const linkChannelSelectOptions = generateChannelSelectOption(
+        filterChannelChoicesByTypes(channels, ["LINE", "RETURN", "FXRETURN", "AUX", "MAIN"])
+    )
+    const colourChannelSelectOptions = generateChannelSelectOption(
+        channels.filter((channel) => {
+            if (!channel.id) return true
+            try {
+                const [type] = JSON.parse(String(channel.id))
+                return supportsChannelColour(type)
+            } catch {
+                return false
+            }
+        })
+    )
     const mixSelectOptions = generateMixSelectOption(mixes, "Mix Source")
     const inputRoutingOptions = generateInputRoutingOption()
     const projectSceneOptions = {
@@ -181,6 +205,25 @@ export default function generateFeedback(
             })
         },
 
+        ChannelSolo: {
+            type: 'boolean',
+            name: 'Solo status',
+            description: 'Solo status of a channel',
+            defaultStyle: {
+                color: combineRgb(0, 0, 0),
+                bgcolor: combineRgb(255, 255, 0),
+            },
+            options: [
+                channelSelectOptions,
+                generateOnOffToggleOption('state', 'Solo state', false, 'on'),
+            ],
+            callback: withChannelSelector((feedback, context, channel) => {
+                const solo = this.client.getSolo(channel)
+                if (solo === null) return false
+                return solo === (feedback.options.state === 'on')
+            })
+        },
+
         ChannelInputRouting: {
             type: 'boolean',
             name: 'Input routing status',
@@ -206,11 +249,11 @@ export default function generateFeedback(
             name: 'Channel colour',
             description: 'Assigned channel colour',
             options: [
-                channelSelectOptions
+                colourChannelSelectOptions
             ],
 
             callback: withChannelSelector((feedback, context, channel) => {
-                const colour: string = this.client.getColour(channel)
+                const colour = this.getChannelColourHex(channel)
                 if (!colour) return {};
 
                 const [R, G, B] = Buffer.from(colour, 'hex')
@@ -223,6 +266,91 @@ export default function generateFeedback(
                     bgcolor: combineRgb(R, G, B)
                 }
             })
+        },
+
+        ChannelLink: {
+            type: 'boolean',
+            name: 'Link status',
+            description: 'Stereo link status of a channel',
+            defaultStyle: {
+                color: combineRgb(0, 0, 0),
+                bgcolor: combineRgb(0, 200, 255),
+            },
+            options: [
+                linkChannelSelectOptions,
+                generateOnOffToggleOption('state', 'Link state', false, 'on'),
+            ],
+            callback: withChannelSelector((feedback, context, channel) => {
+                const link = this.getChannelLink(channel)
+                if (link === null) return false
+                return link === (feedback.options.state === 'on')
+            })
+        },
+
+        ChannelLevel: {
+            type: 'boolean',
+            name: 'Level compare',
+            description: 'Compare channel level to a value',
+            defaultStyle: {
+                color: combineRgb(0, 0, 0),
+                bgcolor: combineRgb(0, 220, 120),
+            },
+            options: [
+                channelSelectOptions,
+                mixSelectOptions,
+                generateComparatorOption(),
+                generateLinearLevelOption(),
+            ],
+            callback: withChannelSelector((feedback, context, channel) => {
+                return compareNumber(this.getChannelLevel(channel), Number(feedback.options.level), feedback.options.comparator)
+            })
+        },
+
+        ChannelPan: {
+            type: 'boolean',
+            name: 'Pan compare',
+            description: 'Compare channel pan or width to a value',
+            defaultStyle: {
+                color: combineRgb(0, 0, 0),
+                bgcolor: combineRgb(255, 140, 0),
+            },
+            options: [
+                panChannelSelectOptions,
+                mixSelectOptions,
+                generateComparatorOption(),
+                generatePanOption(),
+            ],
+            callback: withChannelSelector((feedback, context, channel) => {
+                return compareNumber(this.getChannelPan(channel), Number(feedback.options.pan), feedback.options.comparator)
+            })
+        },
+
+        MuteGroupState: {
+            type: 'boolean',
+            name: 'Mute group state',
+            description: 'Whether a mute group is currently on or off',
+            defaultStyle: {
+                color: combineRgb(0, 0, 0),
+                bgcolor: combineRgb(255, 0, 120),
+            },
+            options: [
+                {
+                    label: 'Mute group',
+                    type: 'dropdown',
+                    id: 'group',
+                    default: '1',
+                    choices: Array.from({ length: 8 }, (_, index) => ({
+                        id: `${index + 1}`,
+                        label: `Mute Group ${index + 1}`,
+                    })),
+                },
+                generateOnOffToggleOption('state', 'State', false, 'on'),
+            ],
+            callback: (feedback) => {
+                const state = this.getMuteGroupState(Number(feedback.options.group))
+                if (state === null) return false
+                return state === (feedback.options.state === 'on')
+            }
         }
     } satisfies CompanionFeedbackDefinitions
 }

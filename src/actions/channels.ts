@@ -1,9 +1,25 @@
 
-import type { CompanionActionDefinition, CompanionActionDefinitions, DropdownChoice } from "@companion-module/base"
+import type { CompanionActionDefinition, CompanionActionDefinitions, CompanionInputFieldColor, DropdownChoice } from "@companion-module/base"
+import { combineRgb } from "@companion-module/base"
 import type { ChannelSelector } from "presonus-studiolive-api"
 import type Instance from ".."
-import { generateTransitionPeriodOption } from "../util/actionsUtils"
-import { extractChannelSelector, generateChannelSelectOption, generateMixSelectOption } from "../util/channelUtils"
+import {
+	generateLinearLevelOption,
+	generateOnOffToggleOption,
+	generatePanOption,
+	generateSignedLevelDeltaOption,
+	generateTransitionPeriodOption,
+} from "../util/actionsUtils"
+import {
+	extractChannelSelector,
+	filterChannelChoicesByTypes,
+	generateChannelSelectOption,
+	generateMixSelectOption,
+	getChannelStatePath,
+	supportsChannelColour,
+	supportsChannelIcon,
+} from "../util/channelUtils"
+import { CHANNEL_ICON_CHOICES } from "../util/icons"
 import { filterLineChannelChoices, generateInputRoutingOption, type InputRoutingMode } from "../util/inputRouting"
 
 const withChannelSelector = function (fn: (
@@ -21,11 +37,58 @@ const withChannelSelector = function (fn: (
 }
 
 export type GeneratedChannelActions = ReturnType<typeof generateActions_channels>
-export default function generateActions_channels(this: Instance, channels: DropdownChoice[], mixes: DropdownChoice[]) {
+export default function generateActions_channels(
+	this: Instance,
+	channels: DropdownChoice[],
+	mixes: DropdownChoice[],
+	channelPresets: DropdownChoice[] = [{ id: "", label: "" }],
+) {
     const channelSelectOptions = generateChannelSelectOption(channels)
     const lineChannelSelectOptions = generateChannelSelectOption(filterLineChannelChoices(channels))
+    const panChannelSelectOptions = generateChannelSelectOption(
+		filterChannelChoicesByTypes(channels, ["LINE", "RETURN", "FXRETURN", "AUX", "MAIN"]),
+	)
+    const linkChannelSelectOptions = generateChannelSelectOption(
+		filterChannelChoicesByTypes(channels, ["LINE", "RETURN", "FXRETURN", "AUX", "MAIN"]),
+	)
+    const colourChannelSelectOptions = generateChannelSelectOption(
+		channels.filter((channel) => {
+			if (!channel.id) return true
+			try {
+				const [type] = JSON.parse(String(channel.id))
+				return supportsChannelColour(type)
+			} catch {
+				return false
+			}
+		}),
+	)
+    const iconChannelSelectOptions = generateChannelSelectOption(
+		channels.filter((channel) => {
+			if (!channel.id) return true
+			try {
+				const [type] = JSON.parse(String(channel.id))
+				return supportsChannelIcon(type)
+			} catch {
+				return false
+			}
+		}),
+	)
     const mixSelectOptions = generateMixSelectOption(mixes, "Mix Target")
     const inputRoutingOptions = generateInputRoutingOption()
+    const colourPickerOption: CompanionInputFieldColor = {
+		label: "Color",
+		type: "colorpicker",
+		id: "color",
+		default: combineRgb(255, 0, 0),
+		returnType: "number",
+	}
+    const channelPresetOptions = {
+		label: "Channel preset",
+		type: "dropdown" as const,
+		id: "channel_preset",
+		choices: channelPresets,
+		default: "",
+	}
 
     const actions = {
         mute: {
@@ -65,10 +128,10 @@ export default function generateActions_channels(this: Instance, channels: Dropd
                 mixSelectOptions,
                 generateTransitionPeriodOption(200)
             ], callback: withChannelSelector((action, context, channel) => {
-                const currentLevel = this.client.getLevel(channel)
-                this.client.setChannelVolumeLinear(channel, 0, <number>action.options.transition).then(() => {
+                const currentLevel = this.getChannelLevel(channel) ?? 0
+                this.setChannelLevel(channel, 0, <number>action.options.transition).then(() => {
                     this.client.mute(channel)
-                    this.client.setChannelVolumeLinear(channel, currentLevel)
+                    return this.setChannelLevel(channel, currentLevel)
                 })
             }),
         },
@@ -80,11 +143,11 @@ export default function generateActions_channels(this: Instance, channels: Dropd
                 mixSelectOptions,
                 generateTransitionPeriodOption(200)
             ], callback: withChannelSelector((action, context, channel) => {
-                const currentLevel = this.client.getLevel(channel)
+                const currentLevel = this.getChannelLevel(channel) ?? 0
 
-                this.client.setChannelVolumeLinear(channel, 0, 0).then(() => {
+                this.setChannelLevel(channel, 0, 0).then(() => {
                     this.client.unmute(channel)
-                    this.client.setChannelVolumeLinear(channel, currentLevel, <number>action.options.transition)
+                    return this.setChannelLevel(channel, currentLevel, <number>action.options.transition)
                 })
             }),
         },
@@ -109,7 +172,163 @@ export default function generateActions_channels(this: Instance, channels: Dropd
             callback: withChannelSelector((action, context, channel) => {
                 this.setInputRoutingMode(channel, <InputRoutingMode>action.options.inputsrc)
             }),
-        }
+        },
+		setLevel: {
+			name: "Set Level",
+			options: [
+				channelSelectOptions,
+				mixSelectOptions,
+				generateLinearLevelOption(),
+				generateTransitionPeriodOption(0),
+			],
+			callback: withChannelSelector((action, context, channel) => {
+				return this.setChannelLevel(
+					channel,
+					Math.max(0, Math.min(100, Number(action.options.level))),
+					Number(action.options.transition),
+				)
+			}),
+		},
+		adjustLevel: {
+			name: "Adjust Level",
+			options: [
+				channelSelectOptions,
+				mixSelectOptions,
+				generateSignedLevelDeltaOption(),
+				generateTransitionPeriodOption(0),
+			],
+			callback: withChannelSelector((action, context, channel) => {
+				const currentLevel = this.getChannelLevel(channel) ?? 0
+				const targetLevel = Math.max(0, Math.min(100, currentLevel + Number(action.options.delta)))
+				return this.setChannelLevel(channel, targetLevel, Number(action.options.transition))
+			}),
+		},
+		setSolo: {
+			name: "Set Solo",
+			options: [
+				channelSelectOptions,
+				generateOnOffToggleOption("state", "Solo"),
+			],
+			callback: withChannelSelector((action, context, channel) => {
+				switch (action.options.state) {
+					case "on":
+						return this.client.setSolo(channel, true)
+					case "off":
+						return this.client.setSolo(channel, false)
+					default:
+						return this.client.toggleSolo(channel)
+				}
+			}),
+		},
+		toggleSolo: {
+			name: "Toggle Solo",
+			options: [
+				channelSelectOptions,
+			],
+			callback: withChannelSelector((action, context, channel) => {
+				return this.client.toggleSolo(channel)
+			}),
+		},
+		setPan: {
+			name: "Set Pan",
+			options: [
+				panChannelSelectOptions,
+				mixSelectOptions,
+				generatePanOption(),
+			],
+			callback: withChannelSelector((action, context, channel) => {
+				this.client.setPan(channel, Math.max(0, Math.min(100, Number(action.options.pan))))
+			}),
+		},
+		setLink: {
+			name: "Set Stereo Link",
+			options: [
+				linkChannelSelectOptions,
+				generateOnOffToggleOption("state", "Link", false, "on"),
+			],
+			callback: withChannelSelector((action, context, channel) => {
+				this.client.setLink(channel, action.options.state === "on")
+			}),
+		},
+		recallChannelPreset: {
+			name: "Recall Channel Preset",
+			options: [
+				channelSelectOptions,
+				channelPresetOptions,
+			],
+			callback: withChannelSelector((action, context, channel) => {
+				if (!action.options.channel_preset) return
+				this.client.recallChannelStrip(channel, String(action.options.channel_preset))
+			}),
+		},
+		setMuteGroup: {
+			name: "Set Mute Group",
+			options: [
+				{
+					label: "Mute group",
+					type: "dropdown",
+					id: "group",
+					default: "1",
+					choices: Array.from({ length: 8 }, (_, index) => ({
+						id: `${index + 1}`,
+						label: `Mute Group ${index + 1}`,
+					})),
+				},
+				generateOnOffToggleOption("state", "State"),
+			],
+			callback: async (action) => {
+				const group = Number(action.options.group)
+				if (!Number.isInteger(group) || group < 1 || group > 8) return
+				this.setMuteGroupState(group, action.options.state as "on" | "off" | "toggle")
+			},
+		},
+		setColour: {
+			name: "Set Channel Color",
+			options: [
+				colourChannelSelectOptions,
+				colourPickerOption,
+			],
+			callback: withChannelSelector((action, context, channel) => {
+				const colorValue = action.options.color
+				let hex = ""
+
+				if (typeof colorValue === "number" && Number.isFinite(colorValue)) {
+					hex = (colorValue >>> 0).toString(16).padStart(8, "0").slice(-6)
+				} else if (typeof colorValue === "string") {
+					const trimmed = colorValue.trim()
+					if (/^#[0-9a-fA-F]{6}$/.test(trimmed)) {
+						hex = trimmed.slice(1)
+					} else if (/^[0-9a-fA-F]{6}$/.test(trimmed)) {
+						hex = trimmed
+					}
+				}
+
+				if (!hex) {
+					this.log("warn", `Set Channel Color did nothing: unsupported color value "${String(colorValue)}".`)
+					return
+				}
+
+				this.client.setColour(channel, hex.toLowerCase())
+			}),
+		},
+		setIcon: {
+			name: "Set Channel Icon",
+			description: "Set the icon displayed for a channel-like strip",
+			options: [
+				iconChannelSelectOptions,
+				{
+					label: "Icon",
+					type: "dropdown",
+					id: "icon",
+					default: "",
+					choices: CHANNEL_ICON_CHOICES,
+				},
+			],
+			callback: withChannelSelector((action, context, channel) => {
+				const icon = String(action.options.icon || "")
+				this.setStringState(`${getChannelStatePath(channel)}.iconid`, icon)
+			}),
+		},
     } satisfies CompanionActionDefinitions
 
     return actions

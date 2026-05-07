@@ -1,4 +1,4 @@
-import { MessageCode, Client as StudioLiveAPI, type ChannelSelector } from "presonus-studiolive-api";
+import { MessageCode, Client as StudioLiveAPI, type ChannelCount, type ChannelSelector } from "presonus-studiolive-api";
 import generateMixes from "./mixes";
 
 import { FunctionDebouncer } from "./util/FunctionDebouncer";
@@ -18,7 +18,13 @@ import generateActions_projectScenes from "./actions/projectScenes";
 
 import generateFeedback from "./feedbacks";
 import generatePreset from "./presets";
-import generateChannelSelectEntries from "./util/channelUtils";
+import generateChannelSelectEntries, {
+	getChannelPacketPath,
+	getChannelStatePath,
+	supportsChannelColour,
+	supportsChannelLink,
+	supportsChannelPan,
+} from "./util/channelUtils";
 import {
 	decodeInputRoutingMode,
 	encodeInputRoutingMode,
@@ -43,13 +49,20 @@ class Instance extends InstanceBase<ConfigType> {
 			sceneTitle: string;
 		}>;
 	}>;
+	channelPresetCache: Array<{
+		name: string;
+		title: string;
+	}>;
 	intervals: NodeJS.Timeout[];
+	levelTransitionTimers: Map<string, NodeJS.Timeout>;
 
 	constructor(internal) {
 		super(internal);
 		this.inputRoutingVariableDefinitions = [];
 		this.projectSceneCache = [];
+		this.channelPresetCache = [];
 		this.intervals = [];
+		this.levelTransitionTimers = new Map();
 	}
 
 	checkFeedbacks(...feedbackTypes: (keyof ReturnType<typeof generateFeedback>)[]): void {
@@ -61,9 +74,14 @@ class Instance extends InstanceBase<ConfigType> {
 		this.checkFeedbacks("ProjectFilterStatus");
 		this.checkFeedbacks("SceneFilterStatus");
 		this.checkFeedbacks("ChannelMute");
+		this.checkFeedbacks("ChannelSolo");
 		this.checkFeedbacks("ChannelSelect");
 		this.checkFeedbacks("ChannelInputRouting");
 		this.checkFeedbacks("ChannelColour");
+		this.checkFeedbacks("ChannelLink");
+		this.checkFeedbacks("ChannelLevel");
+		this.checkFeedbacks("ChannelPan");
+		this.checkFeedbacks("MuteGroupState");
 	}
 
 	#toFloat(value: number): Buffer {
@@ -86,12 +104,187 @@ class Instance extends InstanceBase<ConfigType> {
 		return null;
 	}
 
+	getBooleanState(path: string): boolean | null {
+		return this.#getBooleanState(path);
+	}
+
+	getNumericState(path: string): number | null {
+		const value = this.client.state.get(path);
+		if (Buffer.isBuffer(value)) {
+			return value.readFloatLE();
+		}
+		if (typeof value === "number") {
+			return value;
+		}
+		if (typeof value === "boolean") {
+			return value ? 1 : 0;
+		}
+		return null;
+	}
+
+	normaliseLevelValue(value: number | null): number | null {
+		if (value === null || Number.isNaN(value)) return null;
+		return value <= 1 ? value * 100 : value;
+	}
+
 	setBooleanState(path: string, enabled: boolean): void {
 		const packetPath = path.replaceAll(".", "/");
 		(this.client as any)._sendPacket(
 			MessageCode.ParamValue,
 			Buffer.concat([Buffer.from(`${packetPath}\x00\x00\x00`), this.#toFloat(enabled ? 1 : 0)]),
 		);
+	}
+
+	setStringState(path: string, value: string): void {
+		const packetPath = path.replaceAll(".", "/");
+		(this.client as any)._sendPacket(
+			MessageCode.ParamString,
+			Buffer.concat([Buffer.from(`${packetPath}\x00\x00\x00${value}`), Buffer.from([0x00])]),
+		);
+		this.client.state.set(path, value);
+	}
+
+	getAllChannelSelectors(): ChannelSelector[] {
+		const channels = this.client?.channelCounts;
+		if (!channels) return [];
+
+		return Object.entries(channels).flatMap(([type, count]) => {
+			const selectors: ChannelSelector[] = [];
+			for (let channel = 1; channel <= count; channel++) {
+				selectors.push({ type: type as ChannelSelector["type"], channel });
+			}
+			return selectors;
+		});
+	}
+
+	getChannelVariableBase(selector: ChannelSelector): string {
+		return `${selector.type.toLowerCase()}${selector.channel}`;
+	}
+
+	getChannelName(selector: ChannelSelector): string {
+		const channelPath = getChannelStatePath(selector);
+		return (
+			this.client.state.get(`${channelPath}.username`) ||
+			this.client.state.get(`${channelPath}.name`) ||
+			this.client.state.get(`${channelPath}.chnum`) ||
+			""
+		);
+	}
+
+	getChannelLink(selector: ChannelSelector): boolean | null {
+		if (!supportsChannelLink(selector.type as typeof selector.type)) return null;
+		return this.#getBooleanState(`${getChannelStatePath(selector)}.link`);
+	}
+
+	getChannelLevel(selector: ChannelSelector): number | null {
+		const directLevel = this.client.getLevel(selector);
+		if (typeof directLevel === "number") return this.normaliseLevelValue(directLevel);
+		if (Buffer.isBuffer(directLevel)) return this.normaliseLevelValue(directLevel.readFloatLE());
+
+		const packetPath = getChannelPacketPath(selector);
+		return this.normaliseLevelValue(
+			this.getNumericState(packetPath) ?? this.getNumericState(packetPath.replaceAll("/", ".")),
+		);
+	}
+
+	getChannelPan(selector: ChannelSelector): number | null {
+		if (!supportsChannelPan(selector.type as typeof selector.type)) return null;
+		const channelPath = getChannelStatePath(selector);
+		const link = this.getChannelLink(selector);
+		return this.getNumericState(`${channelPath}.${link ? "stereopan" : "pan"}`);
+	}
+
+	getChannelColourHex(selector: ChannelSelector): string {
+		if (!supportsChannelColour(selector.type as typeof selector.type)) return "";
+
+		const raw = this.client.getColour(selector);
+		if (typeof raw === "string") return raw;
+		if (raw === null || raw === undefined) return "";
+
+		if (typeof raw === "object") {
+			for (const symbol of Object.getOwnPropertySymbols(raw)) {
+				const value = raw[symbol];
+				if (typeof value === "string") return value;
+				if (value === null || value === undefined) return "";
+			}
+		}
+
+		return "";
+	}
+
+	setChannelLevel(selector: ChannelSelector, targetLevel: number, duration = 0): Promise<null> {
+		const level = Math.max(0, Math.min(100, targetLevel));
+		const packetPath = getChannelPacketPath(selector);
+		const existingTimer = this.levelTransitionTimers.get(packetPath);
+		if (existingTimer) {
+			clearTimeout(existingTimer);
+			this.levelTransitionTimers.delete(packetPath);
+		}
+
+		if (!duration) {
+			return this.client.setChannelVolumeLinear(selector, level, 0);
+		}
+
+		const currentLevel = this.getChannelLevel(selector);
+		if (currentLevel === null) {
+			return this.client.setChannelVolumeLinear(selector, level, 0);
+		}
+
+		if (Math.abs(currentLevel - level) < 0.001) {
+			return Promise.resolve(null);
+		}
+
+		const sendLevel = (nextLevel: number) => {
+			(this.client as any)._sendPacket(
+				MessageCode.ParamValue,
+				Buffer.concat([Buffer.from(`${packetPath}\x00\x00\x00`), this.#toFloat(nextLevel / 100)]),
+			);
+			this.client.state.set(packetPath, nextLevel / 100);
+		};
+
+		const stepMs = 40;
+		const steps = Math.max(1, Math.ceil(duration / stepMs));
+
+		return new Promise((resolve) => {
+			let step = 0;
+
+			const tick = () => {
+				step += 1;
+				const progress = step / steps;
+				const nextLevel = currentLevel + (level - currentLevel) * progress;
+				sendLevel(step >= steps ? level : nextLevel);
+
+				if (step >= steps) {
+					this.levelTransitionTimers.delete(packetPath);
+					resolve(null);
+					return;
+				}
+
+				const timer = setTimeout(tick, stepMs);
+				this.levelTransitionTimers.set(packetPath, timer);
+			};
+
+			tick();
+		});
+	}
+
+	getMuteGroupLabel(group: number): string {
+		return this.client.state.get(`mutegroup.mutegroup${group}username`) || `Mute Group ${group}`;
+	}
+
+	getMuteGroupState(group: number): boolean | null {
+		return this.#getBooleanState(`mutegroup.mutegroup${group}`);
+	}
+
+	setMuteGroupState(group: number, mode: "on" | "off" | "toggle"): void {
+		const current = this.getMuteGroupState(group);
+		if (mode === "toggle") {
+			if (current === null) return;
+			this.setBooleanState(`mutegroup.mutegroup${group}`, !current);
+			return;
+		}
+
+		this.setBooleanState(`mutegroup.mutegroup${group}`, mode === "on");
 	}
 
 	getRecallFilterState(filter: RecallFilterDefinition): boolean | null {
@@ -184,6 +377,70 @@ class Instance extends InstanceBase<ConfigType> {
 		return true;
 	}
 
+	buildConsoleVariableDefinitions(channelCounts: ChannelCount): CompanionVariableDefinition[] {
+		const perChannelVariables = this.getAllChannelSelectors().flatMap((selector) => {
+			const base = this.getChannelVariableBase(selector);
+			const variables: CompanionVariableDefinition[] = [
+				{ variableId: `console_${base}_name`, name: `${base} Name` },
+				{ variableId: `console_${base}_mute`, name: `${base} Mute` },
+				{ variableId: `console_${base}_solo`, name: `${base} Solo` },
+				{ variableId: `console_${base}_level`, name: `${base} Level` },
+			];
+
+			if (supportsChannelPan(selector.type as typeof selector.type)) {
+				variables.push({ variableId: `console_${base}_pan`, name: `${base} Pan` });
+			}
+			if (supportsChannelLink(selector.type as typeof selector.type)) {
+				variables.push({ variableId: `console_${base}_link`, name: `${base} Link` });
+			}
+			if (supportsChannelColour(selector.type as typeof selector.type)) {
+				variables.push({ variableId: `console_${base}_color`, name: `${base} Color` });
+			}
+
+			return variables;
+		});
+
+		const lineSendVariables = Array.from({ length: channelCounts.LINE ?? 0 }, (_, index) => {
+			const channel = index + 1;
+			const variables: CompanionVariableDefinition[] = [];
+
+			for (let aux = 1; aux <= (channelCounts.AUX ?? 0); aux++) {
+				variables.push({
+					variableId: `console_line${channel}_aux${aux}_mute`,
+					name: `line${channel} to Aux ${aux} Mute`,
+				});
+			}
+
+			for (let fx = 1; fx <= (channelCounts.FX ?? 0); fx++) {
+				variables.push({
+					variableId: `console_line${channel}_fx${fx}_mute`,
+					name: `line${channel} to FX ${fx} Mute`,
+				});
+			}
+
+			return variables;
+		}).flat();
+
+		const muteGroupVariables = Array.from({ length: 8 }, (_, index) => ({
+			variableId: `console_mutegroup${index + 1}_state`,
+			name: `Mute Group ${index + 1} State`,
+		})).concat(
+			Array.from({ length: 8 }, (_, index) => ({
+				variableId: `console_mutegroup${index + 1}_label`,
+				name: `Mute Group ${index + 1} Label`,
+			})),
+		);
+
+		return [
+			...DEFAULTS.consoleStateVariables,
+			...this.inputRoutingVariableDefinitions,
+			...perChannelVariables,
+			...lineSendVariables,
+			...muteGroupVariables,
+			...this.consoleStateVariables,
+		];
+	}
+
 	#getConsoleVariableValues() {
 		const previousScene = this.#getAdjacentScene(-1);
 		const nextScene = this.#getAdjacentScene(1);
@@ -192,8 +449,13 @@ class Instance extends InstanceBase<ConfigType> {
 			console_version: this.client.state.get("global.mixer_version"),
 			console_serial: this.client.state.get("global.mixer_serial"),
 			console_sel_channel: this.#getSelectedChannelName(),
+			console_current_project: this.client.state.get("presets.loaded_project_name", ""),
+			console_current_project_title: this.client.state.get("presets.loaded_project_title", ""),
+			console_current_scene: this.client.state.get("presets.loaded_scene_name", ""),
+			console_current_scene_title: this.client.state.get("presets.loaded_scene_title", ""),
 			console_prev_scene: previousScene?.sceneTitle || previousScene?.sceneName || "",
 			console_next_scene: nextScene?.sceneTitle || nextScene?.sceneName || "",
+			console_any_solo: this.#getBooleanState("mastersection.anysolo") ?? false,
 		};
 
 		for (const variable of this.consoleStateVariables) {
@@ -203,6 +465,40 @@ class Instance extends InstanceBase<ConfigType> {
 		const lineCount = this.client?.channelCounts?.LINE ?? 0;
 		for (let i = 1; i <= lineCount; i++) {
 			values[`console_ch${i}_inputsrc`] = this.#getInputRoutingMode({ type: "LINE", channel: i } as ChannelSelector) ?? "";
+		}
+
+		for (const selector of this.getAllChannelSelectors()) {
+			const base = this.getChannelVariableBase(selector);
+			values[`console_${base}_name`] = this.getChannelName(selector);
+			values[`console_${base}_mute`] = this.client.getMute(selector) ?? "";
+			values[`console_${base}_solo`] = this.client.getSolo(selector) ?? "";
+			values[`console_${base}_level`] = this.getChannelLevel(selector) ?? "";
+			if (supportsChannelPan(selector.type as typeof selector.type)) {
+				values[`console_${base}_pan`] = this.getChannelPan(selector) ?? "";
+			}
+			if (supportsChannelLink(selector.type as typeof selector.type)) {
+				values[`console_${base}_link`] = this.getChannelLink(selector) ?? "";
+			}
+			if (supportsChannelColour(selector.type as typeof selector.type)) {
+				values[`console_${base}_color`] = this.getChannelColourHex(selector);
+			}
+		}
+
+		for (let line = 1; line <= lineCount; line++) {
+			for (let aux = 1; aux <= (this.client?.channelCounts?.AUX ?? 0); aux++) {
+				values[`console_line${line}_aux${aux}_mute`] =
+					this.client.getMute({ type: "LINE", channel: line, mixType: "AUX", mixNumber: aux }) ?? "";
+			}
+
+			for (let fx = 1; fx <= (this.client?.channelCounts?.FX ?? 0); fx++) {
+				values[`console_line${line}_fx${fx}_mute`] =
+					this.client.getMute({ type: "LINE", channel: line, mixType: "FX", mixNumber: fx }) ?? "";
+			}
+		}
+
+		for (let group = 1; group <= 8; group++) {
+			values[`console_mutegroup${group}_state`] = this.getMuteGroupState(group) ?? "";
+			values[`console_mutegroup${group}_label`] = this.getMuteGroupLabel(group);
 		}
 
 		return values;
@@ -224,6 +520,11 @@ class Instance extends InstanceBase<ConfigType> {
 			clearInterval(id);
 		}
 		this.intervals = [];
+
+		for (const timer of this.levelTransitionTimers.values()) {
+			clearTimeout(timer);
+		}
+		this.levelTransitionTimers.clear();
 	}
 
 	#__disconnect() {
@@ -257,6 +558,11 @@ class Instance extends InstanceBase<ConfigType> {
 		 */
 		this.client.on(MessageCode.ParamValue, () => {
 			this.checkFeedbacks("ChannelMute");
+			this.checkFeedbacks("ChannelSolo");
+			this.checkFeedbacks("ChannelLink");
+			this.checkFeedbacks("ChannelLevel");
+			this.checkFeedbacks("ChannelPan");
+			this.checkFeedbacks("MuteGroupState");
 			this.checkFeedbacks("ProjectFilterStatus");
 			this.checkFeedbacks("SceneFilterStatus");
 		});
@@ -268,6 +574,7 @@ class Instance extends InstanceBase<ConfigType> {
 		this.client.on(MessageCode.ZLIB, () => {
 			this.checkFeedbacks("ChannelSelect");
 			this.checkFeedbacks("ChannelInputRouting");
+			this.checkFeedbacks("MuteGroupState");
 		});
 
 		/**
@@ -287,11 +594,7 @@ class Instance extends InstanceBase<ConfigType> {
 		const channels = generateChannelSelectEntries(this.client.channelCounts);
 		const mixes = generateMixes(this.client.channelCounts);
 		this.inputRoutingVariableDefinitions = generateInputRoutingVariableDefinitions(this.client.channelCounts.LINE ?? 0);
-		this.setVariableDefinitions([
-			...DEFAULTS.consoleStateVariables,
-			...this.inputRoutingVariableDefinitions,
-			...this.consoleStateVariables,
-		]);
+		this.setVariableDefinitions(this.buildConsoleVariableDefinitions(this.client.channelCounts));
 
 		const actions_channels = generateActions_channels.call(this, channels, mixes);
 		this.setActionDefinitions({ ...actions_channels });
@@ -311,8 +614,13 @@ class Instance extends InstanceBase<ConfigType> {
 		 * Initialise scene debouncer
 		 */
 		{
-			const SceneDebouncer = new FunctionDebouncer(200, true, async () => {
+			const metadataDebouncer = new FunctionDebouncer(200, true, async () => {
 				const projects = await this.client.getProjects(true);
+				const channelPresets = await this.client.sendList("presets/channel");
+				this.channelPresetCache = channelPresets.map((preset) => ({
+					name: preset.name,
+					title: preset.title,
+				}));
 				this.projectSceneCache = projects.map((project) => ({
 					projectName: project.name,
 					projectTitle: project.title,
@@ -353,17 +661,24 @@ class Instance extends InstanceBase<ConfigType> {
 						label: [map.projectTitle, map.sceneTitle].filter((v) => v).join(" - "),
 					})),
 				];
+				const channelPresetChoices = [
+					{ id: "", label: "" },
+					...this.channelPresetCache.map((preset) => ({
+						id: preset.name,
+						label: preset.title || preset.name,
+					})),
+				];
 
 				this.setActionDefinitions({
-					...actions_channels,
+					...generateActions_channels.call(this, channels, mixes, channelPresetChoices),
 					...actions_projectScenes,
 				});
 				this.setFeedbackDefinitions(generateFeedback.call(this, channels, mixes, projectSceneChoices));
 			});
 
-			SceneDebouncer.touchImmediate();
+			metadataDebouncer.touchImmediate();
 			this.client.on(MessageCode.JSON, (json) => {
-				if (json.id === "RenamedPreset" || json.id === "StoredPreset") SceneDebouncer.touch();
+				if (json.id === "RenamedPreset" || json.id === "StoredPreset") metadataDebouncer.touch();
 			});
 		}
 
