@@ -87,6 +87,7 @@ class Instance extends InstanceBase<ConfigType> {
 		this.checkFeedbacks("ChannelSelect");
 		this.checkFeedbacks("ChannelInputRouting");
 		this.checkFeedbacks("ChannelColour");
+		this.checkFeedbacks("ChannelIconImage");
 		this.checkFeedbacks("ChannelLink");
 		this.checkFeedbacks("ChannelLevel");
 		this.checkFeedbacks("ChannelPan");
@@ -470,6 +471,7 @@ class Instance extends InstanceBase<ConfigType> {
 			const base = this.getChannelVariableBase(selector);
 			const variables: CompanionVariableDefinition[] = [
 				{ variableId: `console_${base}_name`, name: `${base} Name` },
+				{ variableId: `console_${base}_display_name`, name: `${base} Display Name` },
 				{ variableId: `console_${base}_mute`, name: `${base} Mute` },
 				{ variableId: `console_${base}_solo`, name: `${base} Solo` },
 				{ variableId: `console_${base}_level`, name: `${base} Level` },
@@ -572,7 +574,9 @@ class Instance extends InstanceBase<ConfigType> {
 
 		for (const selector of this.getAllChannelSelectors()) {
 			const base = this.getChannelVariableBase(selector);
-			values[`console_${base}_name`] = this.getChannelName(selector);
+			const channelName = this.getChannelName(selector);
+			values[`console_${base}_name`] = channelName;
+			values[`console_${base}_display_name`] = channelName || `${selector.type} ${selector.channel}`;
 			values[`console_${base}_mute`] = this.client.getMute(selector) ?? "";
 			values[`console_${base}_solo`] = this.client.getSolo(selector) ?? "";
 			values[`console_${base}_level`] = this.getChannelLevel(selector) ?? "";
@@ -693,6 +697,10 @@ class Instance extends InstanceBase<ConfigType> {
 			this.checkFeedbacks("ChannelColour");
 		});
 
+		this.client.on(MessageCode.ParamString, () => {
+			this.checkFeedbacks("ChannelIconImage");
+		});
+
 		this.client.on(MessageCode.ZLIB, () => {
 			this.checkFeedbacks("ChannelSelect");
 			this.checkFeedbacks("ChannelInputRouting");
@@ -729,6 +737,7 @@ class Instance extends InstanceBase<ConfigType> {
 		this.intervals.push(
 			setInterval(() => {
 				this.setVariableValues(this.#getConsoleVariableValues());
+				this.checkFeedbacks("ChannelIconImage");
 			}, 1000),
 		);
 

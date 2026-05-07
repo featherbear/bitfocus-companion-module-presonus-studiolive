@@ -10,7 +10,9 @@ import {
     generateChannelSelectOption,
     generateMixSelectOption,
     supportsChannelColour,
+    supportsChannelIcon,
 } from './util/channelUtils';
+import { getChannelIconPng64 } from './util/icons';
 import {
     decodeInputRoutingMode,
     filterLineChannelChoices,
@@ -68,6 +70,17 @@ export default function generateFeedback(
             try {
                 const [type] = JSON.parse(String(channel.id))
                 return supportsChannelColour(type)
+            } catch {
+                return false
+            }
+        })
+    )
+    const iconChannelSelectOptions = generateChannelSelectOption(
+        channels.filter((channel) => {
+            if (!channel.id) return true
+            try {
+                const [type] = JSON.parse(String(channel.id))
+                return supportsChannelIcon(type)
             } catch {
                 return false
             }
@@ -349,6 +362,25 @@ export default function generateFeedback(
 
                 return {
                     bgcolor: combineRgb(R, G, B)
+                }
+            })
+        },
+
+        ChannelIconImage: {
+            type: 'advanced',
+            name: 'Channel icon image',
+            description: 'Live-synced channel icon PNG from the current console icon selection',
+            options: [
+                iconChannelSelectOptions,
+            ],
+            callback: withChannelSelector((feedback, context, channel) => {
+                const iconId = String(this.client.state.get(`${parseChannelString(channel).replaceAll('/', '.')}.iconid`) || '')
+                const png64 = getChannelIconPng64(iconId)
+                if (!png64) return {}
+
+                return {
+                    png64,
+                    pngalignment: 'center:center',
                 }
             })
         },

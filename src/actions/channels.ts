@@ -155,7 +155,7 @@ export default function generateActions_channels(
                 mixSelectOptions
             ], callback: withChannelSelector((action, context, channel) => {
                 this.client.toggleMute(channel)
-            })
+            }),
         },
         mute_smooth: {
             name: 'Smooth mute channel',
@@ -209,6 +209,15 @@ export default function generateActions_channels(
 			callback: withChannelSelector((action, context, channel) => {
                 this.setInputRoutingMode(channel, <InputRoutingMode>action.options.inputsrc)
             }),
+			learn: (action) => {
+				const channel = extractChannelSelector(action.options)
+				if (!channel) return
+				const current = decodeInputRoutingMode(this.client.state.get(`${getChannelStatePath(channel)}.inputsrc`))
+				return {
+					...action.options,
+					inputsrc: current ?? undefined,
+				}
+			},
         },
 		setGate: {
 			name: "Set Gate",
@@ -227,6 +236,16 @@ export default function generateActions_channels(
 
 				this.setBooleanState(path, action.options.state === "on")
 			}),
+			learn: (action) => {
+				const channel = extractChannelSelector(action.options)
+				if (!channel) return
+				const current = this.getChannelGateState(channel)
+				if (current === null) return
+				return {
+					...action.options,
+					state: current ? "on" : "off",
+				}
+			},
 		},
 		setEq: {
 			name: "Set EQ",
@@ -245,6 +264,16 @@ export default function generateActions_channels(
 
 				this.setBooleanState(path, action.options.state === "on")
 			}),
+			learn: (action) => {
+				const channel = extractChannelSelector(action.options)
+				if (!channel) return
+				const current = this.getChannelEqState(channel)
+				if (current === null) return
+				return {
+					...action.options,
+					state: current ? "on" : "off",
+				}
+			},
 		},
 		setComp: {
 			name: "Set Compressor",
@@ -263,6 +292,16 @@ export default function generateActions_channels(
 
 				this.setBooleanState(path, action.options.state === "on")
 			}),
+			learn: (action) => {
+				const channel = extractChannelSelector(action.options)
+				if (!channel) return
+				const current = this.getChannelCompState(channel)
+				if (current === null) return
+				return {
+					...action.options,
+					state: current ? "on" : "off",
+				}
+			},
 		},
 		setLimiter: {
 			name: "Set Limiter",
@@ -281,6 +320,16 @@ export default function generateActions_channels(
 
 				this.setBooleanState(path, action.options.state === "on")
 			}),
+			learn: (action) => {
+				const channel = extractChannelSelector(action.options)
+				if (!channel) return
+				const current = this.getChannelLimiterState(channel)
+				if (current === null) return
+				return {
+					...action.options,
+					state: current ? "on" : "off",
+				}
+			},
 		},
 		setHpf: {
 			name: "Set HPF",
@@ -300,6 +349,15 @@ export default function generateActions_channels(
 					]),
 				)
 			}),
+			learn: (action) => {
+				const channel = extractChannelSelector(action.options)
+				if (!channel) return
+				const current = this.getChannelHpfValue(channel)
+				return {
+					...action.options,
+					hpf: current === "Off" ? 20 : Number(current) || 20,
+				}
+			},
 		},
 		setLevel: {
 			name: "Set Level",
@@ -348,6 +406,26 @@ export default function generateActions_channels(
 
 				return this.setChannelLevel(channel, targetLevel, Number(action.options.transition))
 			}),
+			learn: (action) => {
+				const channel = extractChannelSelector(action.options)
+				if (!channel) return
+				const currentLevel = this.getChannelLevel(channel)
+				if (currentLevel === null) return
+
+				if (action.options.use_percentage === true) {
+					return {
+						...action.options,
+						level_use_variables: false,
+						level: Math.round(currentLevel * 10) / 10,
+					}
+				}
+
+				return {
+					...action.options,
+					level_use_variables: false,
+					db_level: this.linearLevelToDb(currentLevel) ?? -84,
+				}
+			},
 		},
 		adjustLevel: {
 			name: "Adjust Level",
@@ -420,6 +498,16 @@ export default function generateActions_channels(
 						return this.client.toggleSolo(channel)
 				}
 			}),
+			learn: (action) => {
+				const channel = extractChannelSelector(action.options)
+				if (!channel) return
+				const current = this.client.getSolo(channel)
+				if (current === null) return
+				return {
+					...action.options,
+					state: current ? "on" : "off",
+				}
+			},
 		},
 		toggleSolo: {
 			name: "Toggle Solo",
@@ -440,6 +528,16 @@ export default function generateActions_channels(
 			callback: withChannelSelector((action, context, channel) => {
 				this.client.setPan(channel, Math.max(0, Math.min(100, Number(action.options.pan))))
 			}),
+			learn: (action) => {
+				const channel = extractChannelSelector(action.options)
+				if (!channel) return
+				const current = this.getChannelPan(channel)
+				if (current === null) return
+				return {
+					...action.options,
+					pan: Math.round(current * 10) / 10,
+				}
+			},
 		},
 		setLink: {
 			name: "Set Stereo Link",
@@ -450,6 +548,16 @@ export default function generateActions_channels(
 			callback: withChannelSelector((action, context, channel) => {
 				this.client.setLink(channel, action.options.state === "on")
 			}),
+			learn: (action) => {
+				const channel = extractChannelSelector(action.options)
+				if (!channel) return
+				const current = this.getChannelLink(channel)
+				if (current === null) return
+				return {
+					...action.options,
+					state: current ? "on" : "off",
+				}
+			},
 		},
 		recallChannelPreset: {
 			name: "Recall Channel Preset",
@@ -511,6 +619,16 @@ export default function generateActions_channels(
 
 				this.client.setColour(channel, hex.toLowerCase())
 			}),
+			learn: (action) => {
+				const channel = extractChannelSelector(action.options)
+				if (!channel) return
+				const colour = this.getChannelColourHex(channel)
+				if (!colour) return
+				return {
+					...action.options,
+					color: parseInt(colour, 16),
+				}
+			},
 		},
 		setIcon: {
 			name: "Set Channel Icon",
@@ -529,6 +647,14 @@ export default function generateActions_channels(
 				const icon = String(action.options.icon || "")
 				this.setStringState(`${getChannelStatePath(channel)}.iconid`, icon)
 			}),
+			learn: (action) => {
+				const channel = extractChannelSelector(action.options)
+				if (!channel) return
+				return {
+					...action.options,
+					icon: this.client.state.get(`${getChannelStatePath(channel)}.iconid`) || "",
+				}
+			},
 		},
     } satisfies CompanionActionDefinitions
 

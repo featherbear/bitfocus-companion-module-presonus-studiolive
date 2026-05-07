@@ -1,4 +1,6 @@
 import type { DropdownChoice } from "@companion-module/base";
+import fs from "node:fs";
+import path from "node:path";
 
 export const CHANNEL_ICON_CHOICES: DropdownChoice[] = [
 	{ id: "", label: "" },
@@ -138,3 +140,47 @@ export const CHANNEL_ICON_CHOICES: DropdownChoice[] = [
 	{ id: "woodwinds/tenorsaxophone", label: "Tenor Saxophone" },
 	{ id: "woodwinds/woodwinds", label: "Woodwinds" },
 ];
+
+const CHANNEL_ICON_LABELS = new Map(
+	CHANNEL_ICON_CHOICES.filter((choice) => choice.id && choice.label).map((choice) => [String(choice.id), String(choice.label)]),
+);
+
+const channelIconPng64Cache = new Map<string, string | null>();
+
+function resolveChannelIconPath(label: string): string | undefined {
+	const candidates = [
+		path.resolve(__dirname, "companion/icons/studiolive", `${label}.png`),
+		path.resolve(__dirname, "../companion/icons/studiolive", `${label}.png`),
+		path.resolve(__dirname, "../../companion/icons/studiolive", `${label}.png`),
+		path.resolve(process.cwd(), "companion/icons/studiolive", `${label}.png`),
+	];
+
+	return candidates.find((candidate) => fs.existsSync(candidate));
+}
+
+export function getChannelIconLabel(iconId: string): string | undefined {
+	return CHANNEL_ICON_LABELS.get(iconId);
+}
+
+export function getChannelIconPng64(iconId: string): string | undefined {
+	if (!iconId) return undefined;
+	if (channelIconPng64Cache.has(iconId)) {
+		return channelIconPng64Cache.get(iconId) ?? undefined;
+	}
+
+	const label = getChannelIconLabel(iconId);
+	if (!label) {
+		channelIconPng64Cache.set(iconId, null);
+		return undefined;
+	}
+
+	const iconPath = resolveChannelIconPath(label);
+	if (!iconPath) {
+		channelIconPng64Cache.set(iconId, null);
+		return undefined;
+	}
+
+	const png64 = `data:image/png;base64,${fs.readFileSync(iconPath).toString("base64")}`;
+	channelIconPng64Cache.set(iconId, png64);
+	return png64;
+}
