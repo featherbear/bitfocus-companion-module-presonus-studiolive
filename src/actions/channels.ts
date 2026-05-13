@@ -3,7 +3,7 @@ import type { CompanionActionDefinition, CompanionActionDefinitions, DropdownCho
 import type { ChannelSelector } from "presonus-studiolive-api"
 import type Instance from ".."
 import { generateTransitionPeriodOption } from "../util/actionsUtils"
-import { extractChannelSelector, generateChannelSelectOption, generateMixSelectOption } from "../util/channelUtils"
+import { extractChannelSelector, generateChannelSelectOption, generateMixSelectOption, generateLogarithmicVolumeSelectOption } from "../util/channelUtils"
 
 const withChannelSelector = function (fn: (
     action: Parameters<CompanionActionDefinition['callback']>[0],
@@ -23,8 +23,25 @@ export type GeneratedChannelActions = ReturnType<typeof generateActions_channels
 export default function generateActions_channels(this: Instance, channels: DropdownChoice[], mixes: DropdownChoice[]) {
     const channelSelectOptions = generateChannelSelectOption(channels)
     const mixSelectOptions = generateMixSelectOption(mixes, "Mix Target")
+    const logarithmicVolumeSelectOptions = generateLogarithmicVolumeSelectOption("Volume (-84 (= -∞) to 10 dB)", 0)
+
 
     const actions = {
+        setChannelVolume: {
+            name: 'Set channel volume',
+            options: [
+                channelSelectOptions,
+                mixSelectOptions,
+                generateTransitionPeriodOption(200),
+                logarithmicVolumeSelectOptions
+            ],
+            callback: withChannelSelector((action, context, channel) => {
+                this.client.setChannelVolumeLogarithmic(channel, <number>action.options.volume, <number>action.options.transition)
+            }),
+        },
+
+    
+
         mute: {
             name: 'Mute channel',
             options: [
