@@ -680,6 +680,7 @@ class Instance extends InstanceBase<ConfigType> {
 		 */
 		this.client.on(MessageCode.ParamValue, () => {
 			this.checkFeedbacks("ChannelMute");
+			this.checkFeedbacks("ChannelSelect");
 			this.checkFeedbacks("ChannelSolo");
 			this.checkFeedbacks("ChannelGate");
 			this.checkFeedbacks("ChannelEq");
