@@ -1,7 +1,7 @@
 import type { CompanionFeedbackDefinition, CompanionFeedbackDefinitions, DropdownChoice } from '@companion-module/base';
 import { combineRgb } from '@companion-module/base';
 
-import type { ChannelSelector } from 'presonus-studiolive-api';
+import type { ChannelSelector } from "@featherbear/presonus-studiolive-api";
 import type Instance from './index';
 import { extractChannelSelector, generateChannelSelectOption, generateMixSelectOption } from './util/channelUtils';
 

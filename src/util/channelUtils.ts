@@ -1,5 +1,5 @@
 import type { CompanionInputFieldDropdown, CompanionInputFieldNumber, CompanionOptionValues, DropdownChoice } from "@companion-module/base";
-import type { ChannelCount, ChannelSelector, ChannelTypes } from "presonus-studiolive-api";
+import type { ChannelCount, ChannelSelector, ChannelTypes } from "@featherbear/presonus-studiolive-api";
 
 export function generateChannelSelectOption(channels: DropdownChoice[], label = "Channel"): CompanionInputFieldDropdown {
     return {

@@ -1,6 +1,6 @@
 import type { CompanionActionDefinitions, DropdownChoice } from "@companion-module/base";
 import type Instance from "../";
-import { MessageCode } from "presonus-studiolive-api";
+import { MessageCode } from "@featherbear/presonus-studiolive-api";
 
 export default function generateActions_projectScenes(this: Instance, project_scenes: DropdownChoice[]) {
 	const key = "project_scene";
