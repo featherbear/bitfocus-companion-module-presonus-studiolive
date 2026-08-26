@@ -696,6 +696,7 @@ class Instance extends InstanceBase<ConfigType> {
 
 		this.client.on(MessageCode.ParamChars, () => {
 			this.checkFeedbacks("ChannelColour");
+			this.checkFeedbacks("ChannelIconImage");
 		});
 
 		this.client.on(MessageCode.ParamString, () => {

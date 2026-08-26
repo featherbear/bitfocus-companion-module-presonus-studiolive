@@ -21,6 +21,7 @@
   "dependencies": {
     "@companion-module/base": "^1.13.2",
     "@featherbear/presonus-studiolive-api": "^1.9.1",
+    "@resvg/resvg-wasm": "^2.6.2",
     "nanoid": "^5.1.6"
   },
   "devDependencies": {

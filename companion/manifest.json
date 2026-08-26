@@ -4,7 +4,7 @@
     "shortname": "presonus-studiolive",
     "description": "PreSonus StudioLive Series III integration for Bitfocus Companion",
 	"id": "bitfocus-presonus-studiolive",
-	"name": "PreSonus StudioLive Series III",
+	"name": "bitfocus-presonus-studiolive",
 	"version": "0.0.0",
 	"license": "MIT",
 	"repository": "git+https://github.com/featherbear/bitfocus-companion-module-presonus-studiolive.git",

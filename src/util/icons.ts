@@ -1,6 +1,10 @@
 import type { DropdownChoice } from "@companion-module/base";
+import { initWasm, Resvg } from "@resvg/resvg-wasm";
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const moduleDirectory = path.dirname(fileURLToPath(import.meta.url));
 
 export const CHANNEL_ICON_CHOICES: DropdownChoice[] = [
 	{ id: "", label: "" },
@@ -146,41 +150,74 @@ const CHANNEL_ICON_LABELS = new Map(
 );
 
 const channelIconPng64Cache = new Map<string, string | null>();
+let resvgWasmInitialisation: Promise<void> | undefined;
 
-function resolveChannelIconPath(label: string): string | undefined {
-	const candidates = [
-		path.resolve(__dirname, "companion/icons/studiolive", `${label}.png`),
-		path.resolve(__dirname, "../companion/icons/studiolive", `${label}.png`),
-		path.resolve(__dirname, "../../companion/icons/studiolive", `${label}.png`),
-		path.resolve(process.cwd(), "companion/icons/studiolive", `${label}.png`),
+function initialiseResvgWasm(): Promise<void> {
+	if (!resvgWasmInitialisation) {
+		const wasmPath = [
+			path.resolve(moduleDirectory, "node_modules/@resvg/resvg-wasm/index_bg.wasm"),
+			path.resolve(moduleDirectory, "../node_modules/@resvg/resvg-wasm/index_bg.wasm"),
+			path.resolve(moduleDirectory, "../../node_modules/@resvg/resvg-wasm/index_bg.wasm"),
+			path.resolve(process.cwd(), "node_modules/@resvg/resvg-wasm/index_bg.wasm"),
+		].find(fs.existsSync);
+		if (!wasmPath) throw new Error("Could not locate the resvg WebAssembly binary");
+
+		resvgWasmInitialisation = initWasm(fs.readFileSync(wasmPath));
+	}
+
+	return resvgWasmInitialisation;
+}
+
+function resolveChannelIconPath(iconId: string, label: string): string | undefined {
+	const relativePaths = [`${iconId}.svg`, `${label}.svg`];
+	const roots = [
+		path.resolve(moduleDirectory, "companion/icons/studiolive"),
+		path.resolve(moduleDirectory, "../companion/icons/studiolive"),
+		path.resolve(moduleDirectory, "../../companion/icons/studiolive"),
+		path.resolve(process.cwd(), "companion/icons/studiolive"),
 	];
+	const candidates = roots.flatMap((root) => relativePaths.map((relativePath) => path.resolve(root, relativePath)));
 
 	return candidates.find((candidate) => fs.existsSync(candidate));
+}
+
+function normaliseHexColour(colour: string): string {
+	const hex = colour.trim().replace(/^#/, "");
+	return /^[\da-f]{6}$/i.test(hex) ? hex.toLowerCase() : "ffffff";
 }
 
 export function getChannelIconLabel(iconId: string): string | undefined {
 	return CHANNEL_ICON_LABELS.get(iconId);
 }
 
-export function getChannelIconPng64(iconId: string): string | undefined {
+export async function getChannelIconPng64(iconId: string, colour = "ffffff"): Promise<string | undefined> {
 	if (!iconId) return undefined;
-	if (channelIconPng64Cache.has(iconId)) {
-		return channelIconPng64Cache.get(iconId) ?? undefined;
+	const colourHex = normaliseHexColour(colour);
+	const cacheKey = `${iconId}:${colourHex}`;
+	if (channelIconPng64Cache.has(cacheKey)) {
+		return channelIconPng64Cache.get(cacheKey) ?? undefined;
 	}
 
 	const label = getChannelIconLabel(iconId);
 	if (!label) {
-		channelIconPng64Cache.set(iconId, null);
+		channelIconPng64Cache.set(cacheKey, null);
 		return undefined;
 	}
 
-	const iconPath = resolveChannelIconPath(label);
+	const iconPath = resolveChannelIconPath(iconId, label);
 	if (!iconPath) {
-		channelIconPng64Cache.set(iconId, null);
+		channelIconPng64Cache.set(cacheKey, null);
 		return undefined;
 	}
 
-	const png64 = `data:image/png;base64,${fs.readFileSync(iconPath).toString("base64")}`;
-	channelIconPng64Cache.set(iconId, png64);
+	const svg = fs.readFileSync(iconPath, "utf8").replaceAll("#deadbe", `#${colourHex}`);
+	await initialiseResvgWasm();
+	const resvg = new Resvg(svg);
+	const rendered = resvg.render();
+	const png = rendered.asPng();
+	rendered.free();
+	resvg.free();
+	const png64 = `data:image/png;base64,${Buffer.from(png).toString("base64")}`;
+	channelIconPng64Cache.set(cacheKey, png64);
 	return png64;
 }

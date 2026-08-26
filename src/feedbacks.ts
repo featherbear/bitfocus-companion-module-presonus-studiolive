@@ -373,9 +373,9 @@ export default function generateFeedback(
             options: [
                 iconChannelSelectOptions,
             ],
-            callback: withChannelSelector((feedback, context, channel) => {
+            callback: withChannelSelector(async (feedback, context, channel) => {
                 const iconId = String(this.client.state.get(`${parseChannelString(channel).replaceAll('/', '.')}.iconid`) || '')
-                const png64 = getChannelIconPng64(iconId)
+                const png64 = await getChannelIconPng64(iconId, this.getChannelColourHex(channel))
                 if (!png64) return {}
 
                 return {

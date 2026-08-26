@@ -1,14 +1,14 @@
-Place StudioLive channel icon PNG files in this folder.
+Place StudioLive channel icon SVG files in this folder.
 
-These files are meant to be local user-supplied assets and are excluded from git.
+These files are meant to be local user-supplied assets and are excluded from git.  
+Or ideally, inserted through https://featherbear.cc/bitfocus-companion-module-presonus-studiolive-bakery/
 
-Suggested naming:
-- `<captured icon label>.png`
+Naming should match docs/studiolive-icon-map.md.
 
 Example:
-- `Kick.png`
-- `Lead Vocals.png`
-- `Amp (Half Stack).png`
+- `drums/kick.svg`
+- `vocals/leadvocals.svg`
+- `guitars/amp(halfstack).svg`
 
-The module maps the console `iconid` to the captured icon label and then looks
-for a PNG in this directory with that exact label-based filename.
+The module maps the console `iconid` to the corresponding SVG path. It also
+supports a flat, label-based SVG filename format.
