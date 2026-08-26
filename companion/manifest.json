@@ -1,10 +1,10 @@
 {
-	"$schema": "https://raw.githubusercontent.com/bitfocus/companion-module-base/refs/heads/main/assets/manifest.schema.json",
-    "manufacturer": "PreSonus",
-    "shortname": "presonus-studiolive",
-    "description": "PreSonus StudioLive Series III integration for Bitfocus Companion",
+	"$schema": "../node_modules/@companion-module/base/assets/manifest.schema.json",
+	"manufacturer": "PreSonus",
+	"shortname": "presonus-studiolive",
+	"description": "PreSonus StudioLive Series III integration for Bitfocus Companion",
 	"id": "bitfocus-presonus-studiolive",
-	"name": "PreSonus StudioLive Series III",
+	"name": "bitfocus-presonus-studiolive",
 	"version": "0.0.0",
 	"license": "MIT",
 	"repository": "git+https://github.com/featherbear/bitfocus-companion-module-presonus-studiolive.git",
@@ -19,9 +19,14 @@
 		"type": "node22",
 		"api": "nodejs-ipc",
 		"apiVersion": "0.0.0",
-		"entrypoint": "../dist/index.js"
+		"entrypoint": "../dist/index.js",
+		"permissions": {
+			"filesystem": true
+		}
 	},
 	"legacyIds": [],
-	"products": ["StudioLive Series III"],
+	"products": [
+		"StudioLive Series III"
+	],
 	"keywords": []
 }
