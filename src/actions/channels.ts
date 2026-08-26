@@ -22,7 +22,7 @@ import {
 	supportsChannelIcon,
 } from "../util/channelUtils"
 import { CHANNEL_ICON_CHOICES } from "../util/icons"
-import { filterLineChannelChoices, generateInputRoutingOption, type InputRoutingMode } from "../util/inputRouting"
+import { decodeInputRoutingMode, filterLineChannelChoices, generateInputRoutingOption, type InputRoutingMode } from "../util/inputRouting"
 
 const withChannelSelector = function (fn: (
     action: Parameters<CompanionActionDefinition['callback']>[0],
@@ -131,21 +131,6 @@ export default function generateActions_channels(
 
 
     const actions = {
-        setChannelVolume: {
-            name: 'Set channel volume',
-            options: [
-                channelSelectOptions,
-                mixSelectOptions,
-                generateTransitionPeriodOption(200),
-                logarithmicVolumeSelectOptions
-            ],
-            callback: withChannelSelector((action, context, channel) => {
-                this.client.setChannelVolumeLogarithmic(channel, <number>action.options.volume, <number>action.options.transition)
-            }),
-        },
-
-    
-
         mute: {
             name: 'Mute channel',
             options: [
@@ -377,129 +362,6 @@ export default function generateActions_channels(
 				}
 			},
 		},
-		setLevel: {
-			name: "Set Level",
-			options: [
-				channelSelectOptions,
-				mixSelectOptions,
-				usePercentageOption,
-				useVariablesOption,
-				{
-					...generateLinearLevelOption("level", "Level (%)", 72),
-					isVisibleExpression: '$(options:use_percentage) == true && $(options:level_use_variables) != true',
-				},
-				{
-					label: "Level (dB)",
-					type: "number",
-					id: "db_level",
-					default: 0,
-					min: -84,
-					max: 10,
-					range: true,
-					isVisibleExpression: '$(options:use_percentage) != true && $(options:level_use_variables) != true',
-				},
-				{
-					label: "Level / Adjust Variable",
-					type: "textinput",
-					id: "level_variables",
-					default: "",
-					useVariables: true,
-					isVisibleExpression: '$(options:level_use_variables) == true',
-				},
-				generateTransitionPeriodOption(0),
-			],
-			callback: withChannelSelector(async (action, context, channel) => {
-				const useVariables = action.options.level_use_variables === true
-				const rawValue = useVariables
-					? action.options.level_variables
-					: action.options.use_percentage === true
-						? action.options.level
-						: action.options.db_level
-				const resolved = await resolveNumericOption(context, rawValue, useVariables)
-				if (resolved === null) return
-
-				const targetLevel = action.options.use_percentage === true
-					? Math.max(0, Math.min(100, resolved))
-					: this.dbToLinearLevel(resolved)
-
-				return this.setChannelLevel(channel, targetLevel, Number(action.options.transition))
-			}),
-			learn: (action) => {
-				const channel = extractChannelSelector(action.options)
-				if (!channel) return
-				const currentLevel = this.getChannelLevel(channel)
-				if (currentLevel === null) return
-
-				if (action.options.use_percentage === true) {
-					return {
-						...action.options,
-						level_use_variables: false,
-						level: Math.round(currentLevel * 10) / 10,
-					}
-				}
-
-				return {
-					...action.options,
-					level_use_variables: false,
-					db_level: this.linearLevelToDb(currentLevel) ?? -84,
-				}
-			},
-		},
-		adjustLevel: {
-			name: "Adjust Level",
-			options: [
-				channelSelectOptions,
-				mixSelectOptions,
-				usePercentageOption,
-				{
-					...useVariablesOption,
-					id: "delta_use_variables",
-				},
-				{
-					...generateSignedLevelDeltaOption("delta", "Adjust (%)", 5),
-					isVisibleExpression: '$(options:use_percentage) == true && $(options:delta_use_variables) != true',
-				},
-				{
-					label: "Adjust (dB)",
-					type: "number",
-					id: "db_delta",
-					default: 3,
-					min: -94,
-					max: 94,
-					range: true,
-					isVisibleExpression: '$(options:use_percentage) != true && $(options:delta_use_variables) != true',
-				},
-				{
-					label: "Level / Adjust Variable",
-					type: "textinput",
-					id: "delta_variables",
-					default: "",
-					useVariables: true,
-					isVisibleExpression: '$(options:delta_use_variables) == true',
-				},
-				generateTransitionPeriodOption(0),
-			],
-			callback: withChannelSelector(async (action, context, channel) => {
-				const useVariables = action.options.delta_use_variables === true
-				const rawValue = useVariables
-					? action.options.delta_variables
-					: action.options.use_percentage === true
-						? action.options.delta
-						: action.options.db_delta
-				const resolved = await resolveNumericOption(context, rawValue, useVariables)
-				if (resolved === null) return
-
-				if (action.options.use_percentage === true) {
-					const currentLevel = this.getChannelLevel(channel) ?? 0
-					const targetLevel = Math.max(0, Math.min(100, currentLevel + resolved))
-					return this.setChannelLevel(channel, targetLevel, Number(action.options.transition))
-				}
-
-				const currentDb = this.linearLevelToDb(this.getChannelLevel(channel)) ?? -84
-				const targetDb = Math.max(-84, Math.min(10, currentDb + resolved))
-				return this.setChannelLevel(channel, this.dbToLinearLevel(targetDb), Number(action.options.transition))
-			}),
-		},
 		setSolo: {
 			name: "Set Solo",
 			options: [
@@ -674,6 +536,141 @@ export default function generateActions_channels(
 				}
 			},
 		},
+		setLevel: {
+			name: "Set Level",
+			options: [
+				channelSelectOptions,
+				mixSelectOptions,
+				usePercentageOption,
+				useVariablesOption,
+				{
+					...generateLinearLevelOption("level", "Level (%)", 72),
+					isVisibleExpression: '$(options:use_percentage) == true && $(options:level_use_variables) != true',
+				},
+				{
+					label: "Level (dB)",
+					type: "number",
+					id: "db_level",
+					default: 0,
+					min: -84,
+					max: 10,
+					range: true,
+					isVisibleExpression: '$(options:use_percentage) != true && $(options:level_use_variables) != true',
+				},
+				{
+					label: "Level / Adjust Variable",
+					type: "textinput",
+					id: "level_variables",
+					default: "",
+					useVariables: true,
+					isVisibleExpression: '$(options:level_use_variables) == true',
+				},
+				generateTransitionPeriodOption(0),
+			],
+			callback: withChannelSelector(async (action, context, channel) => {
+				const useVariables = action.options.level_use_variables === true
+				const rawValue = useVariables
+					? action.options.level_variables
+					: action.options.use_percentage === true
+						? action.options.level
+						: action.options.db_level
+				const resolved = await resolveNumericOption(context, rawValue, useVariables)
+				if (resolved === null) return
+
+				const targetLevel = action.options.use_percentage === true
+					? Math.max(0, Math.min(100, resolved))
+					: this.dbToLinearLevel(resolved)
+
+				return this.setChannelLevel(channel, targetLevel, Number(action.options.transition))
+			}),
+			learn: (action) => {
+				const channel = extractChannelSelector(action.options)
+				if (!channel) return
+				const currentLevel = this.getChannelLevel(channel)
+				if (currentLevel === null) return
+
+				if (action.options.use_percentage === true) {
+					return {
+						...action.options,
+						level_use_variables: false,
+						level: Math.round(currentLevel * 10) / 10,
+					}
+				}
+
+				return {
+					...action.options,
+					level_use_variables: false,
+					db_level: this.linearLevelToDb(currentLevel) ?? -84,
+				}
+			},
+		},
+		adjustLevel: {
+			name: "Adjust Level",
+			options: [
+				channelSelectOptions,
+				mixSelectOptions,
+				usePercentageOption,
+				{
+					...useVariablesOption,
+					id: "delta_use_variables",
+				},
+				{
+					...generateSignedLevelDeltaOption("delta", "Adjust (%)", 5),
+					isVisibleExpression: '$(options:use_percentage) == true && $(options:delta_use_variables) != true',
+				},
+				{
+					label: "Adjust (dB)",
+					type: "number",
+					id: "db_delta",
+					default: 3,
+					min: -94,
+					max: 94,
+					range: true,
+					isVisibleExpression: '$(options:use_percentage) != true && $(options:delta_use_variables) != true',
+				},
+				{
+					label: "Level / Adjust Variable",
+					type: "textinput",
+					id: "delta_variables",
+					default: "",
+					useVariables: true,
+					isVisibleExpression: '$(options:delta_use_variables) == true',
+				},
+				generateTransitionPeriodOption(0),
+			],
+			callback: withChannelSelector(async (action, context, channel) => {
+				const useVariables = action.options.delta_use_variables === true
+				const rawValue = useVariables
+					? action.options.delta_variables
+					: action.options.use_percentage === true
+						? action.options.delta
+						: action.options.db_delta
+				const resolved = await resolveNumericOption(context, rawValue, useVariables)
+				if (resolved === null) return
+
+				if (action.options.use_percentage === true) {
+					const currentLevel = this.getChannelLevel(channel) ?? 0
+					const targetLevel = Math.max(0, Math.min(100, currentLevel + resolved))
+					return this.setChannelLevel(channel, targetLevel, Number(action.options.transition))
+				}
+
+				const currentDb = this.linearLevelToDb(this.getChannelLevel(channel)) ?? -84
+				const targetDb = Math.max(-84, Math.min(10, currentDb + resolved))
+				return this.setChannelLevel(channel, this.dbToLinearLevel(targetDb), Number(action.options.transition))
+			}),
+		},
+        setChannelVolume: {
+            name: 'Set channel volume',
+            options: [
+                channelSelectOptions,
+                mixSelectOptions,
+                generateTransitionPeriodOption(200),
+                logarithmicVolumeSelectOptions
+            ],
+            callback: withChannelSelector((action, context, channel) => {
+                this.client.setChannelVolumeLogarithmic(channel, <number>action.options.volume, <number>action.options.transition)
+            }),
+        },
     } satisfies CompanionActionDefinitions
 
     return actions
