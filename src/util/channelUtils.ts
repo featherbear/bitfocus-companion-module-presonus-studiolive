@@ -1,4 +1,4 @@
-import type { CompanionInputFieldDropdown, CompanionOptionValues, DropdownChoice } from "@companion-module/base";
+import type { CompanionInputFieldDropdown, CompanionInputFieldNumber, CompanionOptionValues, DropdownChoice } from "@companion-module/base";
 import type { ChannelCount, ChannelSelector, ChannelTypes } from "@featherbear/presonus-studiolive-api";
 
 export function generateChannelSelectOption(channels: DropdownChoice[], label = "Channel"): CompanionInputFieldDropdown {
@@ -8,6 +8,18 @@ export function generateChannelSelectOption(channels: DropdownChoice[], label = 
         id: 'channel',
         choices: channels,
         default: ''
+    }
+}
+
+
+export function generateLogarithmicVolumeSelectOption(label = "Volume", defaultVolume = 0): CompanionInputFieldNumber {
+    return {
+        label: label,
+        type: 'number',
+        id: 'volume',
+        min: -84,
+        max: 10,
+        default: defaultVolume
     }
 }
 
