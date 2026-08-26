@@ -11,12 +11,12 @@ importers:
       '@companion-module/base':
         specifier: ^1.13.2
         version: 1.13.2
+      '@featherbear/presonus-studiolive-api':
+        specifier: ^1.9.1
+        version: 1.9.1
       nanoid:
         specifier: ^5.1.6
         version: 5.1.6
-      presonus-studiolive-api:
-        specifier: github:featherbear/presonus-studiolive-api#1cbe40b3b8c8e05a1e855c1b7547c8eeac4f3924
-        version: https://codeload.github.com/featherbear/presonus-studiolive-api/tar.gz/1cbe40b3b8c8e05a1e855c1b7547c8eeac4f3924
     devDependencies:
       '@companion-module/tools':
         specifier: ^2.4.1
@@ -117,6 +117,9 @@ packages:
     resolution: {integrity: sha512-sB5uyeq+dwCWyPi31B2gQlVlo+j5brPlWx4yZBrEaRo/nhdDE8Xke1gsGgtiBdaBTxuTkceLVuVt/pclrasb0A==, tarball: https://packages.atlassian.com/api/npm/npm-remote/@eslint/plugin-kit/-/plugin-kit-0.4.0.tgz}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
 
+  '@featherbear/presonus-studiolive-api@1.9.1':
+    resolution: {integrity: sha512-6TT1543EE8hHHegv56zFh+CttV9zFwBOIxQFAIOjcifIn9kSlr+Xb0K8mgWDLTyDEaabw4mNCO3LjB8Uc6yJjQ==}
+
   '@humanfs/core@0.19.1':
     resolution: {integrity: sha512-5DyQ4+1JEUzejeK1JGICcideyfUbGixgS9jNgex5nqkW+cY7WZhxBigmieN5Qnw9ZosSNVC9KQKyb+GUaGyKUA==, tarball: https://packages.atlassian.com/api/npm/npm-remote/@humanfs/core/-/core-0.19.1.tgz}
     engines: {node: '>=18.18.0'}
@@ -206,49 +209,42 @@ packages:
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [linux]
-    libc: [glibc]
 
   '@napi-rs/nice-linux-arm64-musl@1.1.1':
     resolution: {integrity: sha512-+2Rzdb3nTIYZ0YJF43qf2twhqOCkiSrHx2Pg6DJaCPYhhaxbLcdlV8hCRMHghQ+EtZQWGNcS2xF4KxBhSGeutg==}
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [linux]
-    libc: [musl]
 
   '@napi-rs/nice-linux-ppc64-gnu@1.1.1':
     resolution: {integrity: sha512-4FS8oc0GeHpwvv4tKciKkw3Y4jKsL7FRhaOeiPei0X9T4Jd619wHNe4xCLmN2EMgZoeGg+Q7GY7BsvwKpL22Tg==}
     engines: {node: '>= 10'}
     cpu: [ppc64]
     os: [linux]
-    libc: [glibc]
 
   '@napi-rs/nice-linux-riscv64-gnu@1.1.1':
     resolution: {integrity: sha512-HU0nw9uD4FO/oGCCk409tCi5IzIZpH2agE6nN4fqpwVlCn5BOq0MS1dXGjXaG17JaAvrlpV5ZeyZwSon10XOXw==}
     engines: {node: '>= 10'}
     cpu: [riscv64]
     os: [linux]
-    libc: [glibc]
 
   '@napi-rs/nice-linux-s390x-gnu@1.1.1':
     resolution: {integrity: sha512-2YqKJWWl24EwrX0DzCQgPLKQBxYDdBxOHot1KWEq7aY2uYeX+Uvtv4I8xFVVygJDgf6/92h9N3Y43WPx8+PAgQ==}
     engines: {node: '>= 10'}
     cpu: [s390x]
     os: [linux]
-    libc: [glibc]
 
   '@napi-rs/nice-linux-x64-gnu@1.1.1':
     resolution: {integrity: sha512-/gaNz3R92t+dcrfCw/96pDopcmec7oCcAQ3l/M+Zxr82KT4DljD37CpgrnXV+pJC263JkW572pdbP3hP+KjcIg==}
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [linux]
-    libc: [glibc]
 
   '@napi-rs/nice-linux-x64-musl@1.1.1':
     resolution: {integrity: sha512-xScCGnyj/oppsNPMnevsBe3pvNaoK7FGvMjT35riz9YdhB2WtTG47ZlbxtOLpjeO9SqqQ2J2igCmz6IJOD5JYw==}
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [linux]
-    libc: [musl]
 
   '@napi-rs/nice-openharmony-arm64@1.1.1':
     resolution: {integrity: sha512-6uJPRVwVCLDeoOaNyeiW0gp2kFIM4r7PL2MczdZQHkFi9gVlgm+Vn+V6nTWRcu856mJ2WjYJiumEajfSm7arPQ==}
@@ -332,28 +328,24 @@ packages:
     engines: {node: '>=10'}
     cpu: [arm64]
     os: [linux]
-    libc: [glibc]
 
   '@swc/core-linux-arm64-musl@1.13.5':
     resolution: {integrity: sha512-9+ZxFN5GJag4CnYnq6apKTnnezpfJhCumyz0504/JbHLo+Ue+ZtJnf3RhyA9W9TINtLE0bC4hKpWi8ZKoETyOQ==}
     engines: {node: '>=10'}
     cpu: [arm64]
     os: [linux]
-    libc: [musl]
 
   '@swc/core-linux-x64-gnu@1.13.5':
     resolution: {integrity: sha512-WD530qvHrki8Ywt/PloKUjaRKgstQqNGvmZl54g06kA+hqtSE2FTG9gngXr3UJxYu/cNAjJYiBifm7+w4nbHbA==}
     engines: {node: '>=10'}
     cpu: [x64]
     os: [linux]
-    libc: [glibc]
 
   '@swc/core-linux-x64-musl@1.13.5':
     resolution: {integrity: sha512-Luj8y4OFYx4DHNQTWjdIuKTq2f5k6uSXICqx+FSabnXptaOBAbJHNbHT/06JZh6NRUouaf0mYXN0mcsqvkhd7Q==}
     engines: {node: '>=10'}
     cpu: [x64]
     os: [linux]
-    libc: [musl]
 
   '@swc/core-win32-arm64-msvc@1.13.5':
     resolution: {integrity: sha512-cZ6UpumhF9SDJvv4DA2fo9WIzlNFuKSkZpZmPG1c+4PFSEMy5DFOjBSllCvnqihCabzXzpn6ykCwBmHpy31vQw==}
@@ -1811,10 +1803,6 @@ packages:
     resolution: {integrity: sha512-vkcDPrRZo1QZLbn5RLGPpg/WmIQ65qoWWhcGKf/b5eplkkarX0m9z8ppCat4mlOqUsWpyNuYgO3VRyrYHSzX5g==, tarball: https://packages.atlassian.com/api/npm/npm-remote/prelude-ls/-/prelude-ls-1.2.1.tgz}
     engines: {node: '>= 0.8.0'}
 
-  presonus-studiolive-api@https://codeload.github.com/featherbear/presonus-studiolive-api/tar.gz/1cbe40b3b8c8e05a1e855c1b7547c8eeac4f3924:
-    resolution: {tarball: https://codeload.github.com/featherbear/presonus-studiolive-api/tar.gz/1cbe40b3b8c8e05a1e855c1b7547c8eeac4f3924}
-    version: 1.7.3
-
   prettier-linter-helpers@1.0.0:
     resolution: {integrity: sha512-GbK2cP9nraSSUF9N2XwUwqfzlAFlMNYYl+ShE/V+H8a9uNl/oUqB1w2EL54Jh0OlyRSd8RfWYJ3coVS4TROP2w==, tarball: https://packages.atlassian.com/api/npm/npm-remote/prettier-linter-helpers/-/prettier-linter-helpers-1.0.0.tgz}
     engines: {node: '>=6.0.0'}
@@ -2439,6 +2427,11 @@ snapshots:
     dependencies:
       '@eslint/core': 0.16.0
       levn: 0.4.1
+
+  '@featherbear/presonus-studiolive-api@1.9.1':
+    dependencies:
+      bunyan: 1.8.15
+      queue: 6.0.2
 
   '@humanfs/core@0.19.1': {}
 
@@ -4201,21 +4194,6 @@ snapshots:
   possible-typed-array-names@1.1.0: {}
 
   prelude-ls@1.2.1: {}
-
-  presonus-studiolive-api@https://codeload.github.com/featherbear/presonus-studiolive-api/tar.gz/1cbe40b3b8c8e05a1e855c1b7547c8eeac4f3924:
-    dependencies:
-      '@swc/cli': 0.7.8(@swc/core@1.13.5)
-      '@swc/core': 1.13.5
-      bunyan: 1.8.15
-      npm-run-all: 4.1.5
-      queue: 6.0.2
-      rimraf: 6.0.1
-      typescript: 5.9.3
-    transitivePeerDependencies:
-      - '@swc/helpers'
-      - chokidar
-      - react-native-b4a
-      - supports-color
 
   prettier-linter-helpers@1.0.0:
     dependencies:

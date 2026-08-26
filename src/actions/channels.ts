@@ -1,7 +1,7 @@
 
 import type { CompanionActionDefinition, CompanionActionDefinitions, CompanionInputFieldColor, DropdownChoice } from "@companion-module/base"
 import { combineRgb } from "@companion-module/base"
-import { MessageCode, type ChannelSelector } from "presonus-studiolive-api"
+import { MessageCode, type ChannelSelector } from "@featherbear/presonus-studiolive-api"
 import type Instance from ".."
 import {
 	generateHpfOption,
@@ -16,6 +16,7 @@ import {
 	filterChannelChoicesByTypes,
 	generateChannelSelectOption,
 	generateMixSelectOption,
+	generateLogarithmicVolumeSelectOption,
 	getChannelStatePath,
 	supportsChannelColour,
 	supportsChannelIcon,
@@ -99,6 +100,7 @@ export default function generateActions_channels(
 		}),
 	)
     const mixSelectOptions = generateMixSelectOption(mixes, "Mix Target")
+    const logarithmicVolumeSelectOptions = generateLogarithmicVolumeSelectOption("Volume (-84 (= -∞) to 10 dB)", 0)
     const inputRoutingOptions = generateInputRoutingOption()
     const colourPickerOption: CompanionInputFieldColor = {
 		label: "Color",
@@ -127,7 +129,23 @@ export default function generateActions_channels(
 		default: "",
 	}
 
+
     const actions = {
+        setChannelVolume: {
+            name: 'Set channel volume',
+            options: [
+                channelSelectOptions,
+                mixSelectOptions,
+                generateTransitionPeriodOption(200),
+                logarithmicVolumeSelectOptions
+            ],
+            callback: withChannelSelector((action, context, channel) => {
+                this.client.setChannelVolumeLogarithmic(channel, <number>action.options.volume, <number>action.options.transition)
+            }),
+        },
+
+    
+
         mute: {
             name: 'Mute channel',
             options: [

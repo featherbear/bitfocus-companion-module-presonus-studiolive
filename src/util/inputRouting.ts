@@ -3,7 +3,7 @@ import type {
 	CompanionVariableDefinition,
 	DropdownChoice,
 } from "@companion-module/base";
-import { parseChannelString, type ChannelSelector } from "presonus-studiolive-api";
+import { parseChannelString, type ChannelSelector } from "@featherbear/presonus-studiolive-api";
 
 export const INPUT_ROUTING_CHOICES: DropdownChoice[] = [
 	{ id: "analog", label: "Analog" },

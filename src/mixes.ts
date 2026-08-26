@@ -1,6 +1,6 @@
 
 import type { DropdownChoice } from '@companion-module/base';
-import type { ChannelCount } from 'presonus-studiolive-api';
+import type { ChannelCount } from "@featherbear/presonus-studiolive-api";
 
 export default function generateMixes(channels: ChannelCount): DropdownChoice[] {
     const mixes: DropdownChoice[] = [

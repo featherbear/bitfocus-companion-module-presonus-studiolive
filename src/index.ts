@@ -1,4 +1,4 @@
-import { MessageCode, Client as StudioLiveAPI, type ChannelCount, type ChannelSelector } from "presonus-studiolive-api";
+import { MessageCode, Client as StudioLiveAPI, type ChannelCount, type ChannelSelector } from "@featherbear/presonus-studiolive-api";
 import generateMixes from "./mixes";
 
 import { FunctionDebouncer } from "./util/FunctionDebouncer";
