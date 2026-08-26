@@ -3,5 +3,3 @@
 bitfocus-presonus-studiolive-*.tgz
 node_modules/
 .DS_Store
-companion/icons/studiolive/*.png
-!companion/icons/studiolive/README.md
