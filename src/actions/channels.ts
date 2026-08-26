@@ -16,7 +16,6 @@ import {
 	filterChannelChoicesByTypes,
 	generateChannelSelectOption,
 	generateMixSelectOption,
-	generateLogarithmicVolumeSelectOption,
 	getChannelStatePath,
 	supportsChannelColour,
 	supportsChannelIcon,
@@ -100,8 +99,7 @@ export default function generateActions_channels(
 		}),
 	)
     const mixSelectOptions = generateMixSelectOption(mixes, "Mix Target")
-    const logarithmicVolumeSelectOptions = generateLogarithmicVolumeSelectOption("Volume (-84 (= -∞) to 10 dB)", 0)
-    const inputRoutingOptions = generateInputRoutingOption()
+	const inputRoutingOptions = generateInputRoutingOption()
     const colourPickerOption: CompanionInputFieldColor = {
 		label: "Color",
 		type: "colorpicker",
@@ -659,18 +657,6 @@ export default function generateActions_channels(
 				return this.setChannelLevel(channel, this.dbToLinearLevel(targetDb), Number(action.options.transition))
 			}),
 		},
-        setChannelVolume: {
-            name: 'Set channel volume',
-            options: [
-                channelSelectOptions,
-                mixSelectOptions,
-                generateTransitionPeriodOption(200),
-                logarithmicVolumeSelectOptions
-            ],
-            callback: withChannelSelector((action, context, channel) => {
-                this.client.setChannelVolumeLogarithmic(channel, <number>action.options.volume, <number>action.options.transition)
-            }),
-        },
     } satisfies CompanionActionDefinitions
 
     return actions
