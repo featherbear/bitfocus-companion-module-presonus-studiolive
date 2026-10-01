@@ -2,9 +2,6 @@ import type { DropdownChoice } from "@companion-module/base";
 import { initWasm, Resvg } from "@resvg/resvg-wasm";
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
-
-const moduleDirectory = path.dirname(fileURLToPath(import.meta.url));
 
 export const CHANNEL_ICON_CHOICES: DropdownChoice[] = [
 	{ id: "", label: "" },
@@ -155,9 +152,9 @@ let resvgWasmInitialisation: Promise<void> | undefined;
 function initialiseResvgWasm(): Promise<void> {
 	if (!resvgWasmInitialisation) {
 		const wasmPath = [
-			path.resolve(moduleDirectory, "node_modules/@resvg/resvg-wasm/index_bg.wasm"),
-			path.resolve(moduleDirectory, "../node_modules/@resvg/resvg-wasm/index_bg.wasm"),
-			path.resolve(moduleDirectory, "../../node_modules/@resvg/resvg-wasm/index_bg.wasm"),
+			path.resolve(__dirname, "node_modules/@resvg/resvg-wasm/index_bg.wasm"),
+			path.resolve(__dirname, "../node_modules/@resvg/resvg-wasm/index_bg.wasm"),
+			path.resolve(__dirname, "../../node_modules/@resvg/resvg-wasm/index_bg.wasm"),
 			path.resolve(process.cwd(), "node_modules/@resvg/resvg-wasm/index_bg.wasm"),
 		].find(fs.existsSync);
 		if (!wasmPath) throw new Error("Could not locate the resvg WebAssembly binary");
@@ -171,9 +168,9 @@ function initialiseResvgWasm(): Promise<void> {
 function resolveChannelIconPath(iconId: string, label: string): string | undefined {
 	const relativePaths = [`${iconId}.svg`, `${label}.svg`];
 	const roots = [
-		path.resolve(moduleDirectory, "companion/icons/studiolive"),
-		path.resolve(moduleDirectory, "../companion/icons/studiolive"),
-		path.resolve(moduleDirectory, "../../companion/icons/studiolive"),
+		path.resolve(__dirname, "companion/icons/studiolive"),
+		path.resolve(__dirname, "../companion/icons/studiolive"),
+		path.resolve(__dirname, "../../companion/icons/studiolive"),
 		path.resolve(process.cwd(), "companion/icons/studiolive"),
 	];
 	const candidates = roots.flatMap((root) => relativePaths.map((relativePath) => path.resolve(root, relativePath)));
